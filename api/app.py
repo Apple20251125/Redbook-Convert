@@ -9,7 +9,7 @@ import httpx
 import os
 import uuid
 import logging
-from typing import List, Literal
+from typing import List, Literal, Dict
 import platform
 
 # 配置日志
@@ -39,6 +39,12 @@ logger.info(f"输出目录: {OUTPUT_DIR}")
 class ConvertRequest(BaseModel):
     url: str
     format: Literal["pdf", "markdown"] = "pdf"  # 使用 Literal 进行验证
+
+
+class NoteContent(BaseModel):
+    title: str
+    content: str
+    images: List[str]
 
 
 class ConvertResponse(BaseModel):
@@ -102,8 +108,8 @@ def get_chrome_executable_path() -> str | None:
     return None
 
 
-async def parse_xiaohongshu(url: str) -> List[str]:
-    """解析小红书笔记，获取所有图片URL"""
+async def parse_xiaohongshu(url: str) -> NoteContent:
+    """解析小红书笔记，获取标题、正文和图片URL"""
     chrome_path = get_chrome_executable_path()
 
     async with async_playwright() as p:
@@ -117,6 +123,33 @@ async def parse_xiaohongshu(url: str) -> List[str]:
             await page.goto(url, wait_until="networkidle", timeout=30000)
             await page.wait_for_timeout(5000)
 
+            # 提取标题
+            title = await page.title()
+            # 尝试从 h1 标签获取更准确的标题
+            h1_element = await page.query_selector("h1")
+            if h1_element:
+                h1_text = await h1_element.text_content()
+                if h1_text:
+                    title = h1_text.strip()
+
+            # 提取正文 - 尝试多个可能的选择器
+            content_selectors = [
+                "div[class*='content']",
+                "div[class*='note']",
+                "div[class*='text']",
+                "article",
+                ".note-text",
+                ".desc-text"
+            ]
+            content = ""
+            for selector in content_selectors:
+                content_element = await page.query_selector(selector)
+                if content_element:
+                    text = await content_element.text_content()
+                    if text and len(text) > 20:  # 确保是正文内容
+                        content = text.strip()
+                        break
+
             # 获取所有图片及其位置信息
             images = await page.query_selector_all("img")
             image_data = []
@@ -129,7 +162,6 @@ async def parse_xiaohongshu(url: str) -> List[str]:
                         # 获取图片在页面中的位置（用于排序）
                         box = await img.bounding_box()
                         if box:
-                            # 按 (y, x) 排序，先按垂直位置，再按水平位置
                             position = (box.get("y", 0), box.get("x", 0))
                             image_data.append({"url": src, "position": position})
 
@@ -148,7 +180,7 @@ async def parse_xiaohongshu(url: str) -> List[str]:
                     unique_urls.append(url)
 
             await browser.close()
-            return unique_urls
+            return NoteContent(title=title or "小红书笔记", content=content, images=unique_urls)
 
         except Exception as e:
             await browser.close()
@@ -227,7 +259,10 @@ async def convert_note(request: ConvertRequest):
         # 从输入中提取实际的URL
         extracted_url = extract_url(request.url)
         logger.info(f"开始解析笔记: {extracted_url}")
-        image_urls = await parse_xiaohongshu(extracted_url)
+        note_content = await parse_xiaohongshu(extracted_url)
+        image_urls = note_content.images
+        note_title = note_content.title
+        note_text = note_content.content
 
         if not image_urls:
             raise HTTPException(
