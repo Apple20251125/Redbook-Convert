@@ -38,13 +38,15 @@ logger.info(f"输出目录: {OUTPUT_DIR}")
 
 class ConvertRequest(BaseModel):
     url: str
+    format: str = "pdf"  # 新增：默认 pdf，可选 "pdf" 或 "markdown"
 
 
 class ConvertResponse(BaseModel):
     success: bool
     message: str
     imageCount: int = 0
-    pdfUrl: str = ""
+    format: str = "pdf"  # 新增
+    downloadUrl: str = ""  # 重命名：原 pdfUrl
     filename: str = ""
 
 
