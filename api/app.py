@@ -377,53 +377,90 @@ def cleanup_task_files(task_id: str):
 
 @app.post("/api/convert", response_model=ConvertResponse)
 async def convert_note(request: ConvertRequest):
-    """转换小红书笔记为PDF"""
+    """转换小红书笔记为 PDF 或 Markdown"""
     task_id = str(uuid.uuid4())
 
     try:
         # 1. 解析小红书笔记
-        # 从输入中提取实际的URL
         extracted_url = extract_url(request.url)
-        logger.info(f"开始解析笔记: {extracted_url}")
-        note_content = await parse_xiaohongshu(extracted_url)
-        image_urls = note_content.images
-        note_title = note_content.title
-        note_text = note_content.content
+        logger.info(f"开始解析笔记: {extracted_url}, 格式: {request.format}")
 
-        if not image_urls:
+        note_content = await parse_xiaohongshu(extracted_url)
+
+        if not note_content.images:
             raise HTTPException(
                 status_code=400, detail="未找到笔记图片，请检查链接是否正确"
             )
 
-        logger.info(f"找到 {len(image_urls)} 张图片")
+        # Markdown 格式需要检查是否有正文
+        if request.format == "markdown" and not note_content.content:
+            raise HTTPException(
+                status_code=400, detail="未找到笔记正文，请检查链接是否正确"
+            )
+
+        logger.info(f"找到 {len(note_content.images)} 张图片")
 
         # 2. 下载图片
         logger.info("开始下载图片...")
-        image_paths = await download_images(image_urls, task_id)
+        image_paths = await download_images(note_content.images, task_id)
 
         if not image_paths:
             raise HTTPException(status_code=500, detail="图片下载失败")
 
         logger.info(f"成功下载 {len(image_paths)} 张图片")
 
-        # 3. 生成PDF
-        pdf_filename = f"小红书笔记_{task_id[:8]}.pdf"
-        pdf_path = os.path.join(OUTPUT_DIR, pdf_filename)
+        # 3. 根据格式生成文件
+        task_dir = os.path.join(OUTPUT_DIR, task_id)
 
-        logger.info("开始生成PDF...")
-        create_pdf(image_paths, pdf_path)
+        if request.format == "pdf":
+            # PDF 流程
+            pdf_filename = f"小红书笔记_{task_id[:8]}.pdf"
+            pdf_path = os.path.join(OUTPUT_DIR, pdf_filename)
 
-        # 4. 清理临时图片文件
-        cleanup_task_files(task_id)
+            logger.info("开始生成 PDF...")
+            create_pdf(image_paths, pdf_path)
 
-        return ConvertResponse(
-            success=True,
-            message="转换成功",
-            imageCount=len(image_paths),
-            downloadUrl=f"/api/download/{pdf_filename}",
-            filename=pdf_filename,
-            format="pdf",
-        )
+            cleanup_task_files(task_id)
+
+            return ConvertResponse(
+                success=True,
+                message="转换成功",
+                imageCount=len(image_paths),
+                format="pdf",
+                downloadUrl=f"/api/download/{pdf_filename}",
+                filename=pdf_filename
+            )
+
+        elif request.format == "markdown":
+            # Markdown 流程
+            md_filename = f"小红书笔记_{task_id[:8]}.md"
+            md_path = os.path.join(task_dir, md_filename)
+
+            # 生成 markdown
+            logger.info("开始生成 Markdown...")
+            create_markdown(note_content.title, note_content.content, image_paths, md_path)
+
+            # 打包 ZIP
+            zip_filename = f"小红书笔记_{task_id[:8]}.zip"
+            zip_path = os.path.join(OUTPUT_DIR, zip_filename)
+
+            logger.info("开始打包 ZIP...")
+            create_zip(md_path, task_dir, zip_path)
+
+            cleanup_task_files(task_id)
+
+            return ConvertResponse(
+                success=True,
+                message="转换成功",
+                imageCount=len(image_paths),
+                format="markdown",
+                downloadUrl=f"/api/download/{zip_filename}",
+                filename=zip_filename
+            )
+
+        else:
+            cleanup_task_files(task_id)
+            raise HTTPException(status_code=400, detail=f"不支持的格式: {request.format}")
 
     except HTTPException:
         cleanup_task_files(task_id)
