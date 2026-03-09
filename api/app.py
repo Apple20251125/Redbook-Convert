@@ -234,6 +234,29 @@ def create_pdf(image_paths: List[str], output_path: str):
     )
 
 
+def create_markdown(title: str, content: str, image_paths: List[str], output_path: str):
+    """生成 Markdown 文件"""
+    markdown_lines = []
+
+    # 标题
+    markdown_lines.append(f"# {title}\n")
+
+    # 正文内容
+    if content:
+        markdown_lines.append(f"{content}\n")
+
+    # 图片引用
+    for i, img_path in enumerate(image_paths, 1):
+        img_filename = os.path.basename(img_path)
+        markdown_lines.append(f"\n![图片{i}](images/{img_filename})\n")
+
+    # 写入文件
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.writelines(markdown_lines)
+
+    logger.info(f"Markdown 文件已生成: {output_path}")
+
+
 def cleanup_task_files(task_id: str):
     """清理临时文件"""
     task_dir = os.path.join(OUTPUT_DIR, task_id)
