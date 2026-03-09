@@ -8,6 +8,7 @@ from PIL import Image
 import httpx
 import os
 import uuid
+import zipfile
 import logging
 from typing import List, Literal, Dict
 import platform
@@ -299,6 +300,23 @@ def create_markdown(title: str, content: str, image_paths: List[str], output_pat
     except IOError as e:
         logger.error(f"写入 Markdown 文件失败: {output_path}, 错误: {e}")
         raise IOError(f"无法写入 Markdown 文件: {e}")
+
+
+def create_zip(markdown_path: str, image_dir: str, output_path: str):
+    """将 markdown 和图片打包成 ZIP"""
+    with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        # 添加 markdown 文件
+        zipf.write(markdown_path, os.path.basename(markdown_path))
+
+        # 添加图片文件夹
+        if os.path.exists(image_dir):
+            for filename in os.listdir(image_dir):
+                file_path = os.path.join(image_dir, filename)
+                if os.path.isfile(file_path):
+                    # 在 ZIP 中创建 images/ 子目录
+                    zipf.write(file_path, f"images/{filename}")
+
+    logger.info(f"ZIP 文件已生成: {output_path}")
 
 
 def cleanup_task_files(task_id: str):
