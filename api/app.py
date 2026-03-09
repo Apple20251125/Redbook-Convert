@@ -235,26 +235,70 @@ def create_pdf(image_paths: List[str], output_path: str):
 
 
 def create_markdown(title: str, content: str, image_paths: List[str], output_path: str):
-    """生成 Markdown 文件"""
+    """生成 Markdown 文件
+
+    Args:
+        title: 笔记标题
+        content: 笔记正文内容
+        image_paths: 图片路径列表
+        output_path: Markdown 文件输出路径
+
+    Raises:
+        ValueError: 如果标题和内容均为空
+        IOError: 如果文件写入失败
+    """
+    # 输入验证
+    if not title and not content and not image_paths:
+        raise ValueError("标题、内容和图片不能全部为空")
+
+    if not isinstance(title, str):
+        raise ValueError("标题必须是字符串")
+
+    if not isinstance(content, str):
+        raise ValueError("内容必须是字符串")
+
+    if not isinstance(image_paths, list):
+        raise ValueError("图片路径必须是列表")
+
+    # 验证图片路径
+    for img_path in image_paths:
+        if not isinstance(img_path, str) or not img_path.strip():
+            raise ValueError("图片路径必须是非空字符串")
+
     markdown_lines = []
 
     # 标题
-    markdown_lines.append(f"# {title}\n")
+    if title:
+        markdown_lines.append(f"# {title}\n")
 
     # 正文内容
     if content:
         markdown_lines.append(f"{content}\n")
 
-    # 图片引用
-    for i, img_path in enumerate(image_paths, 1):
-        img_filename = os.path.basename(img_path)
-        markdown_lines.append(f"\n![图片{i}](images/{img_filename})\n")
+    # 图片引用 - 添加额外的换行以改善格式
+    if image_paths:
+        # 确保内容后有额外换行
+        if content:
+            markdown_lines.append("\n")
 
-    # 写入文件
-    with open(output_path, 'w', encoding='utf-8') as f:
-        f.writelines(markdown_lines)
+        for i, img_path in enumerate(image_paths, 1):
+            img_filename = os.path.basename(img_path)
+            markdown_lines.append(f"![图片{i}](images/{img_filename})\n\n")
 
-    logger.info(f"Markdown 文件已生成: {output_path}")
+    # 写入文件，添加错误处理
+    try:
+        # 确保输出目录存在
+        output_dir = os.path.dirname(output_path)
+        if output_dir and not os.path.exists(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
+
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.writelines(markdown_lines)
+
+        logger.info(f"Markdown 文件已生成: {output_path}")
+    except IOError as e:
+        logger.error(f"写入 Markdown 文件失败: {output_path}, 错误: {e}")
+        raise IOError(f"无法写入 Markdown 文件: {e}")
 
 
 def cleanup_task_files(task_id: str):
