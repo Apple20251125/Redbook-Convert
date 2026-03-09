@@ -36,7 +36,7 @@ def test_convert(url: str):
                 print(f"✓ 转换成功!")
                 print(f"  - 图片数量: {data.get('imageCount', 0)}")
                 print(f"  - PDF文件: {data.get('filename', '')}")
-                print(f"  - 下载链接: http://localhost:8000{data.get('pdfUrl', '')}")
+                print(f"  - 下载链接: http://localhost:8000{data.get('downloadUrl', '')}")
                 return True
             else:
                 print(f"✗ 转换失败: {data.get('message', '未知错误')}")

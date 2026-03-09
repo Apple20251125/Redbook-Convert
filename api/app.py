@@ -9,7 +9,7 @@ import httpx
 import os
 import uuid
 import logging
-from typing import List
+from typing import List, Literal
 import platform
 
 # 配置日志
@@ -38,7 +38,7 @@ logger.info(f"输出目录: {OUTPUT_DIR}")
 
 class ConvertRequest(BaseModel):
     url: str
-    format: str = "pdf"  # 新增：默认 pdf，可选 "pdf" 或 "markdown"
+    format: Literal["pdf", "markdown"] = "pdf"  # 使用 Literal 进行验证
 
 
 class ConvertResponse(BaseModel):
@@ -259,8 +259,9 @@ async def convert_note(request: ConvertRequest):
             success=True,
             message="转换成功",
             imageCount=len(image_paths),
-            pdfUrl=f"/api/download/{pdf_filename}",
+            downloadUrl=f"/api/download/{pdf_filename}",
             filename=pdf_filename,
+            format="pdf",
         )
 
     except HTTPException:
