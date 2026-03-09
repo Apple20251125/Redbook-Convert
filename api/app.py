@@ -303,20 +303,61 @@ def create_markdown(title: str, content: str, image_paths: List[str], output_pat
 
 
 def create_zip(markdown_path: str, image_dir: str, output_path: str):
-    """将 markdown 和图片打包成 ZIP"""
-    with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        # 添加 markdown 文件
-        zipf.write(markdown_path, os.path.basename(markdown_path))
+    """将 markdown 和图片打包成 ZIP
 
-        # 添加图片文件夹
-        if os.path.exists(image_dir):
-            for filename in os.listdir(image_dir):
-                file_path = os.path.join(image_dir, filename)
-                if os.path.isfile(file_path):
+    Args:
+        markdown_path: Markdown 文件路径
+        image_dir: 图片目录路径
+        output_path: ZIP 文件输出路径
+
+    Raises:
+        FileNotFoundError: 如果 markdown 文件或图片目录不存在
+        ValueError: 如果图片目录为空
+        IOError: 如果 ZIP 文件创建失败
+    """
+    try:
+        # 验证 markdown 文件存在
+        if not os.path.exists(markdown_path):
+            raise FileNotFoundError(f"Markdown 文件不存在: {markdown_path}")
+
+        # 验证图片目录存在
+        if not os.path.exists(image_dir):
+            raise FileNotFoundError(f"图片目录不存在: {image_dir}")
+
+        # 确保输出目录存在
+        output_dir = os.path.dirname(output_path)
+        if output_dir and not os.path.exists(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
+
+        with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            # 添加 markdown 文件
+            zipf.write(markdown_path, os.path.basename(markdown_path))
+
+            # 添加图片文件夹
+            image_files = [f for f in os.listdir(image_dir) if os.path.isfile(os.path.join(image_dir, f))]
+
+            if not image_files:
+                logger.warning(f"图片目录为空: {image_dir}")
+            else:
+                for filename in image_files:
+                    file_path = os.path.join(image_dir, filename)
                     # 在 ZIP 中创建 images/ 子目录
                     zipf.write(file_path, f"images/{filename}")
 
-    logger.info(f"ZIP 文件已生成: {output_path}")
+        logger.info(f"ZIP 文件已生成: {output_path}")
+
+    except FileNotFoundError as e:
+        logger.error(f"文件或目录不存在: {e}")
+        raise
+    except zipfile.BadZipFile as e:
+        logger.error(f"创建 ZIP 文件失败: {e}")
+        raise IOError(f"无法创建 ZIP 文件: {e}")
+    except IOError as e:
+        logger.error(f"写入 ZIP 文件失败: {output_path}, 错误: {e}")
+        raise IOError(f"无法写入 ZIP 文件: {e}")
+    except Exception as e:
+        logger.error(f"创建 ZIP 文件时发生未知错误: {e}")
+        raise
 
 
 def cleanup_task_files(task_id: str):
