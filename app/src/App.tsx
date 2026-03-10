@@ -32,6 +32,7 @@ const extractXhsUrl = (text: string): string => {
 
 export default function App() {
   const [url, setUrl] = useState('');
+  const [format, setFormat] = useState<'pdf' | 'markdown'>('pdf');
   const [conversion, setConversion] = useState<ConversionStatus>({
     status: 'idle',
     message: '请输入小红书笔记链接',
