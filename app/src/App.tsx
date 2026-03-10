@@ -187,7 +187,7 @@ export default function App() {
                 {conversion.status === 'idle' || conversion.status === 'error' || conversion.status === 'completed' ? (
                   <>
                     <FileImage className="w-4 h-4 mr-2" />
-                    生成PDF
+                    生成{format === 'pdf' ? 'PDF' : 'Markdown'}
                   </>
                 ) : (
                   <>
