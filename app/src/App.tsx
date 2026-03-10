@@ -78,7 +78,7 @@ export default function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url: extractedUrl }),
+        body: JSON.stringify({ url: extractedUrl, format }),
       });
 
       if (!response.ok) {
@@ -87,21 +87,21 @@ export default function App() {
       }
 
       const data = await response.json();
-      
+
       if (data.success) {
-        // 构建完整的PDF下载URL
-        const fullPdfUrl = data.pdfUrl.startsWith('http') 
-          ? data.pdfUrl 
-          : `${API_BASE_URL}${data.pdfUrl}`;
-        
+        // 构建完整的下载URL
+        const fullDownloadUrl = data.downloadUrl.startsWith('http')
+          ? data.downloadUrl
+          : `${API_BASE_URL}${data.downloadUrl}`;
+
         setConversion({
           status: 'completed',
-          message: `成功生成PDF！共 ${data.imageCount} 张图片`,
+          message: `成功生成${format === 'pdf' ? 'PDF' : 'Markdown'}！共 ${data.imageCount} 张图片`,
           progress: 100,
-          pdfUrl: fullPdfUrl,
+          pdfUrl: fullDownloadUrl,
           filename: data.filename,
         });
-        toast.success('PDF生成成功！');
+        toast.success(`${format === 'pdf' ? 'PDF' : 'Markdown'}生成成功！`);
       } else {
         throw new Error(data.message || '转换失败');
       }
@@ -240,7 +240,7 @@ export default function App() {
                 className="w-full h-12 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
               >
                 <Download className="w-4 h-4 mr-2" />
-                下载PDF文件
+                {format === 'pdf' ? '下载PDF文件' : '下载Markdown文件 (ZIP)'}
               </Button>
             )}
 
