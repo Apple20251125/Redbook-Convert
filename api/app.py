@@ -40,6 +40,7 @@ logger.info(f"输出目录: {OUTPUT_DIR}")
 class ConvertRequest(BaseModel):
     url: str
     format: Literal["pdf", "markdown"] = "pdf"  # 使用 Literal 进行验证
+    originalText: str = ""  # 原始输入文本，用于提取文件名
 
 
 class NoteContent(BaseModel):
@@ -70,6 +71,42 @@ def extract_url(text: str) -> str:
         url = re.sub(r"[。，！！？?、,，]+$", "", url)
         return url
     return text.strip()
+
+
+def extract_title_from_text(text: str) -> str:
+    """从原始文本中提取标题（链接前的文字）"""
+    import re
+
+    # 匹配链接前的所有文字
+    match = re.search(r"(.*?)\s*(https?://(?:[^\s]*?xiaohongshu\.com[^\s]*|xhslink\.com[^\s]*))", text, re.IGNORECASE)
+    if match:
+        title = match.group(1).strip()
+        # 移除常见的复制提示文字
+        title = re.sub(r'复制后打开【.*?】查看笔记！.*$', '', title)
+        return title.strip()
+    return ""
+
+
+def sanitize_filename(filename: str) -> str:
+    """清理文件名中的非法字符"""
+    import re
+
+    # Windows不允许的字符: \ / : * ? " < > |
+    # 同时移除一些可能导致问题的字符
+    illegal_chars = r'[\\/:*?"<>|\x00-\x1f]'
+    cleaned = re.sub(illegal_chars, '', filename)
+
+    # 替换连续空格和换行为单个空格
+    cleaned = re.sub(r'\s+', ' ', cleaned)
+
+    # 移除首尾空格
+    cleaned = cleaned.strip()
+
+    # 如果清理后为空，使用默认名称
+    if not cleaned:
+        cleaned = "小红书笔记"
+
+    return cleaned
 
 
 def get_chrome_executable_path() -> str | None:
@@ -188,7 +225,7 @@ async def parse_xiaohongshu(url: str) -> NoteContent:
             raise e
 
 
-async def download_images(image_urls: List[str], task_id: str) -> List[str]:
+async def download_images(image_urls: List[str], task_id: str, title: str = "小红书笔记") -> List[str]:
     """下载图片到本地"""
     task_dir = os.path.join(OUTPUT_DIR, task_id)
     os.makedirs(task_dir, exist_ok=True)
@@ -204,7 +241,8 @@ async def download_images(image_urls: List[str], task_id: str) -> List[str]:
             try:
                 response = await client.get(url, headers=headers)
                 if response.status_code == 200:
-                    img_path = os.path.join(task_dir, f"image_{i + 1:02d}.jpg")
+                    # 使用标题作为图片文件名
+                    img_path = os.path.join(task_dir, f"{title}-{i + 1}.jpg")
                     with open(img_path, "wb") as f:
                         f.write(response.content)
                     downloaded_paths.append(img_path)
@@ -380,6 +418,11 @@ async def convert_note(request: ConvertRequest):
     """转换小红书笔记为 PDF 或 Markdown"""
     task_id = str(uuid.uuid4())
 
+    # 从原始文本提取标题作为文件名
+    title = extract_title_from_text(request.originalText or request.url)
+    clean_title = sanitize_filename(title)
+    logger.info(f"提取的标题: {clean_title}")
+
     try:
         # 1. 解析小红书笔记
         extracted_url = extract_url(request.url)
@@ -402,7 +445,7 @@ async def convert_note(request: ConvertRequest):
 
         # 2. 下载图片
         logger.info("开始下载图片...")
-        image_paths = await download_images(note_content.images, task_id)
+        image_paths = await download_images(note_content.images, task_id, clean_title)
 
         if not image_paths:
             raise HTTPException(status_code=500, detail="图片下载失败")
@@ -414,7 +457,7 @@ async def convert_note(request: ConvertRequest):
 
         if request.format == "pdf":
             # PDF 流程
-            pdf_filename = f"小红书笔记_{task_id[:8]}.pdf"
+            pdf_filename = f"{clean_title}.pdf"
             pdf_path = os.path.join(OUTPUT_DIR, pdf_filename)
 
             logger.info("开始生成 PDF...")
@@ -433,7 +476,7 @@ async def convert_note(request: ConvertRequest):
 
         elif request.format == "markdown":
             # Markdown 流程
-            md_filename = f"小红书笔记_{task_id[:8]}.md"
+            md_filename = f"{clean_title}.md"
             md_path = os.path.join(task_dir, md_filename)
 
             # 生成 markdown
@@ -441,7 +484,7 @@ async def convert_note(request: ConvertRequest):
             create_markdown(note_content.title, note_content.content, image_paths, md_path)
 
             # 打包 ZIP
-            zip_filename = f"小红书笔记_{task_id[:8]}.zip"
+            zip_filename = f"{clean_title}.zip"
             zip_path = os.path.join(OUTPUT_DIR, zip_filename)
 
             logger.info("开始打包 ZIP...")
