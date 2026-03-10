@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -195,6 +196,23 @@ export default function App() {
                   </>
                 )}
               </Button>
+            </div>
+
+            {/* Format Selection */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">选择格式</label>
+              <RadioGroup value={format} onValueChange={(value) => setFormat(value as 'pdf' | 'markdown')}>
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="pdf" id="pdf" />
+                    <label htmlFor="pdf" className="text-sm">PDF 格式</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="markdown" id="markdown" />
+                    <label htmlFor="markdown" className="text-sm">Markdown 格式</label>
+                  </div>
+                </div>
+              </RadioGroup>
             </div>
 
             {/* Progress Area */}
