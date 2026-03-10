@@ -150,10 +150,10 @@ export default function App() {
             <FileImage className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            小红书笔记转PDF
+            小红书笔记转PDF/Markdown
           </h1>
           <p className="text-gray-600">
-            输入小红书笔记链接，一键生成PDF文件
+            输入小红书笔记链接，一键生成PDF或Markdown文件
           </p>
         </div>
 
@@ -271,7 +271,7 @@ export default function App() {
             <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mx-auto mb-2">
               <Download className="w-5 h-5 text-green-500" />
             </div>
-            <p className="text-sm text-gray-600">下载PDF</p>
+            <p className="text-sm text-gray-600">下载</p>
           </div>
         </div>
 
