@@ -40,8 +40,19 @@ RUN playwright install chromium
 # Copy application (api folder)
 COPY api/ .
 
-# Copy frontend build files to app/dist
-COPY app/dist /app/app/dist
+# Install Node.js for frontend build
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy frontend source
+COPY app/package*.json app/vite.config.ts app/tsconfig*.json app/ ./
+
+# Install and build frontend
+RUN npm install && npm run build
+
+# Copy built frontend to correct location
+RUN mkdir -p /app/app/dist && cp -r dist/* /app/app/dist/
 
 # Create downloads directory
 RUN mkdir -p /app/downloads
