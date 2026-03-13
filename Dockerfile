@@ -19,14 +19,14 @@ COPY api/requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application
+# Copy application (api folder)
 COPY api/ .
 
-# Copy frontend build files
-COPY app/dist ./app/dist
+# Copy frontend build files to app/dist
+COPY app/dist /app/app/dist
 
 # Create downloads directory
-RUN mkdir -p downloads
+RUN mkdir -p /app/downloads
 
 # Expose port
 EXPOSE 8080
