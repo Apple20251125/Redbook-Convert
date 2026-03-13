@@ -4,7 +4,14 @@ FROM python:3.11-slim
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
+    curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install Playwright browsers
 RUN pip install playwright && \
@@ -21,6 +28,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application
 COPY api/ .
+
+# Build frontend
+COPY app/package.json app/package-lock.json* ./
+RUN npm install && npm run build
+COPY app/dist ./app/dist
 
 # Create downloads directory
 RUN mkdir -p downloads
