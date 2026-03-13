@@ -1,8 +1,14 @@
 # 小红书笔记转PDF/Markdown工具
 
-![截图](xhs-pdf.png)
+<div align="center">
 
-一个轻量级的Web工具，可以将小红书笔记/内容一键转换为PDF和Markdown格式，方便归档、分享或二次编辑。
+![小红书笔记转PDF/Markdown](./xhs-pdf.png)
+
+### 轻量级工具，一键将小红书笔记转换为PDF和Markdown格式
+
+[在线演示](https://example.com) • [功能特点](#功能特点) • [快速开始](#部署方式) • [API接口](#api接口)
+
+</div>
 
 ## 功能特点
 
@@ -26,7 +32,8 @@ xhs-pdf/
 │   ├── requirements.txt   # Python依赖
 │   └── downloads/         # 生成的文件
 ├── docs/                   # 文档
-└── README.md              # 本文件
+├── README.md              # 英文文档
+└── README-ZH.md          # 本文件
 ```
 
 ## 部署方式

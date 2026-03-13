@@ -1,8 +1,14 @@
 # Xiaohongshu to PDF/Markdown Converter
 
-![Screenshot](xhs-pdf-en.png)
+<div align="center">
 
-A lightweight web tool that converts Xiaohongshu (Little Red Book) notes/content into PDF and Markdown formats with one click, facilitating archiving, sharing, or secondary editing.
+![Redbook-Convert](./xhs-pdf-en.png)
+
+### A lightweight web tool that converts Xiaohongshu notes into PDF and Markdown formats
+
+[Demo](https://example.com) • [Features](#features) • [Quick Start](#deployment) • [API](#api)
+
+</div>
 
 ## Features
 
@@ -27,7 +33,7 @@ xhs-pdf/
 │   └── downloads/         # Generated files
 ├── docs/                   # Documentation
 ├── README.md              # English documentation
-└── README-CN.md          # Chinese documentation
+└── README-ZH.md          # Chinese documentation
 ```
 
 ## Deployment
