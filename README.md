@@ -6,7 +6,7 @@
 
 ### A lightweight web tool that converts Xiaohongshu notes into PDF and Markdown formats
 
-[Demo](https://example.com) • [Features](#features) • [Quick Start](#deployment) • [API](#api)
+[Demo](#) • [Features](#features) • [Quick Start](#deployment) • [API](#api-endpoints)
 
 </div>
 
