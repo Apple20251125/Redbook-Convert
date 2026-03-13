@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Download, Link2, Loader2, FileImage, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { LanguageSwitch } from '@/components/LanguageSwitch';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ConversionStatus {
   status: 'idle' | 'parsing' | 'downloading' | 'generating' | 'completed' | 'error';
@@ -33,11 +34,12 @@ const extractXhsUrl = (text: string): string => {
 };
 
 export default function App() {
+  const { t } = useLanguage();
   const [url, setUrl] = useState('');
   const [format, setFormat] = useState<'pdf' | 'markdown'>('pdf');
   const [conversion, setConversion] = useState<ConversionStatus>({
     status: 'idle',
-    message: '请输入小红书笔记链接',
+    message: t.inputUrl,
     progress: 0,
   });
 
