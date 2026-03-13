@@ -151,7 +151,16 @@ async def parse_xiaohongshu(url: str) -> NoteContent:
     chrome_path = get_chrome_executable_path()
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True, executable_path=chrome_path)
+        browser = await p.chromium.launch(
+            headless=True,
+            executable_path=chrome_path,
+            args=[
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-blink-features=AutomationControlled'
+            ]
+        )
         context = await browser.new_context(
             user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15A372 Safari/604.1"
         )
