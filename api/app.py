@@ -531,13 +531,24 @@ async def health_check():
     return {"status": "ok"}
 
 
-# 挂载前端静态文件
-frontend_dir = os.path.join(os.path.dirname(BASE_DIR), "app", "dist")
-if os.path.exists(frontend_dir):
+# 挂载前端静态文件 - 尝试多个可能路径
+possible_paths = [
+    os.path.join(os.path.dirname(BASE_DIR), "app", "dist"),  # 本地开发
+    os.path.join(BASE_DIR, "app", "dist"),                   # Docker
+    "/app/app/dist",                                         # Docker 绝对路径
+]
+
+frontend_dir = None
+for path in possible_paths:
+    if os.path.exists(path):
+        frontend_dir = path
+        break
+
+if frontend_dir:
     app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="static")
     logger.info(f"前端静态文件目录: {frontend_dir}")
 else:
-    logger.warning(f"前端静态文件目录不存在: {frontend_dir}")
+    logger.warning("前端静态文件目录不存在")
 
 
 if __name__ == "__main__":
