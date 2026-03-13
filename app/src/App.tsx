@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Download, Link2, Loader2, FileImage, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { LanguageSwitch } from '@/components/LanguageSwitch';
 
 interface ConversionStatus {
   status: 'idle' | 'parsing' | 'downloading' | 'generating' | 'completed' | 'error';
@@ -143,6 +144,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-red-50 flex items-center justify-center p-4">
+      <LanguageSwitch />
       <div className="w-full max-w-xl">
         {/* Header */}
         <div className="text-center mb-8">
