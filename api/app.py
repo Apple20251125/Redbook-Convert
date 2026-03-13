@@ -158,8 +158,8 @@ async def parse_xiaohongshu(url: str) -> NoteContent:
         page = await context.new_page()
 
         try:
-            await page.goto(url, wait_until="networkidle", timeout=30000)
-            await page.wait_for_timeout(5000)
+            await page.goto(url, wait_until="domcontentloaded", timeout=60000)
+            await page.wait_for_timeout(10000)
 
             # 提取标题
             title = await page.title()
