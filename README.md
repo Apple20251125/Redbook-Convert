@@ -6,7 +6,7 @@
 
 ### A lightweight web tool that converts Xiaohongshu notes into PDF and Markdown formats
 
-[Demo](https://redbook-convert-production.up.railway.app) • [Features](#features) • [Quick Start](#deployment) • [API](#api-endpoints)
+[Demo](https://redbook-convert-production.up.railway.app) • [中文](README-ZH.md) • [Features](#features) • [Quick Start](#deployment) • [API](#api-endpoints)
 
 </div>
 

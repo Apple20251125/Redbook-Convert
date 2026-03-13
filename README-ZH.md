@@ -6,7 +6,7 @@
 
 ### 轻量级工具，一键将小红书笔记转换为PDF和Markdown格式
 
-[在线演示](https://redbook-convert-production.up.railway.app) • [功能特点](#功能特点) • [快速开始](#部署方式) • [API接口](#api接口)
+[在线演示](https://redbook-convert-production.up.railway.app) • [English](README.md) • [功能特点](#功能特点) • [快速开始](#部署方式) • [API接口](#api接口)
 
 </div>
 
