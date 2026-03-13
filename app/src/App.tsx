@@ -39,9 +39,12 @@ export default function App() {
   const [format, setFormat] = useState<'pdf' | 'markdown'>('pdf');
   const [conversion, setConversion] = useState<ConversionStatus>({
     status: 'idle',
-    message: t.inputUrl,
+    message: '',
     progress: 0,
   });
+
+  // Update message when language changes
+  const displayMessage = conversion.status === 'idle' && !conversion.message ? t.inputUrl : conversion.message;
 
   const handleSubmit = async () => {
     if (!url.trim()) {
@@ -220,13 +223,13 @@ export default function App() {
             </div>
 
             {/* Progress Area */}
-            {(conversion.status !== 'idle' || conversion.message) && (
+            {(conversion.status !== 'idle' || displayMessage) && (
               <div className="space-y-3">
                 <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
                   {getStatusIcon()}
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-700">
-                      {conversion.message}
+                      {displayMessage}
                     </p>
                   </div>
                 </div>
@@ -251,7 +254,7 @@ export default function App() {
             {/* Error Message */}
             {conversion.status === 'error' && (
               <Alert variant="destructive">
-                <AlertDescription>{conversion.message}</AlertDescription>
+                <AlertDescription>{displayMessage}</AlertDescription>
               </Alert>
             )}
           </CardContent>
