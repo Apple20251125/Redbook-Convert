@@ -35,3 +35,6 @@ app/dist/
 # Claude Code
 .claude/
 CLAUDE.md
+
+# Session summaries
+SESSION_SUMMARY.md
