@@ -148,10 +148,10 @@ def get_chrome_executable_path() -> str | None:
 
 async def parse_xiaohongshu(url: str) -> NoteContent:
     """解析小红书笔记，获取标题、正文和图片URL"""
-    # Use default Playwright browser path
     async with async_playwright() as p:
         browser = await p.chromium.launch(
             headless=True,
+            channel="chromium",
             args=[
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
