@@ -48,7 +48,7 @@ export default function App() {
 
   const handleSubmit = async () => {
     if (!url.trim()) {
-      toast.error('请输入小红书笔记链接');
+      toast.error(t.inputError);
       return;
     }
 
@@ -63,7 +63,7 @@ export default function App() {
 
     const isValidXhsUrl = xhsPatterns.some(pattern => pattern.test(extractedUrl));
     if (!isValidXhsUrl) {
-      toast.error('请输入有效的小红书笔记链接');
+      toast.error(t.invalidUrlError);
       return;
     }
 
@@ -74,7 +74,7 @@ export default function App() {
 
     setConversion({
       status: 'parsing',
-      message: '正在解析笔记内容...',
+      message: t.parsing,
       progress: 10,
     });
 
@@ -89,7 +89,7 @@ export default function App() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.detail || '转换失败');
+        throw new Error(error.detail || t.error);
       }
 
       const data = await response.json();
@@ -102,17 +102,17 @@ export default function App() {
 
         setConversion({
           status: 'completed',
-          message: `成功生成${format === 'pdf' ? 'PDF' : 'Markdown'}！共 ${data.imageCount} 张图片`,
+          message: `${t.success}${format === 'pdf' ? 'PDF' : 'Markdown'}！共 ${data.imageCount} 张图片`,
           progress: 100,
           pdfUrl: fullDownloadUrl,
           filename: data.filename,
         });
-        toast.success(`${format === 'pdf' ? 'PDF' : 'Markdown'}生成成功！`);
+        toast.success(`${format === 'pdf' ? 'PDF' : 'Markdown'}${t.generateSuccess}`);
       } else {
-        throw new Error(data.message || '转换失败');
+        throw new Error(data.message || t.error);
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : '转换过程中出现错误';
+      const message = error instanceof Error ? error.message : t.convertError;
       setConversion({
         status: 'error',
         message,
@@ -126,11 +126,11 @@ export default function App() {
     if (conversion.pdfUrl) {
       const link = document.createElement('a');
       link.href = conversion.pdfUrl;
-      link.download = conversion.filename || '小红书笔记.pdf';
+      link.download = conversion.filename || (format === 'pdf' ? 'xiaohongshu.pdf' : 'xiaohongshu.zip');
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast.success('开始下载PDF文件');
+      toast.success(t.startDownload);
     }
   };
 
@@ -157,19 +157,19 @@ export default function App() {
             <FileImage className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            小红书笔记转PDF/Markdown
+            {t.title}
           </h1>
           <p className="text-gray-600">
-            输入小红书笔记链接，一键生成PDF或Markdown文件
+            {t.subtitle}
           </p>
         </div>
 
         {/* Main Card */}
         <Card className="shadow-xl border-0">
           <CardHeader className="pb-4">
-            <CardTitle className="text-lg">笔记链接</CardTitle>
+            <CardTitle className="text-lg">{t.noteLink}</CardTitle>
             <CardDescription>
-              支持 xhslink.com 和 xiaohongshu.com 链接
+              {t.linkDescription}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -178,7 +178,7 @@ export default function App() {
               <div className="flex-1 relative">
                 <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
-                  placeholder="粘贴小红书笔记链接..."
+                  placeholder={t.linkPlaceholder}
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   className="pl-10 h-12"
@@ -194,12 +194,12 @@ export default function App() {
                 {conversion.status === 'idle' || conversion.status === 'error' || conversion.status === 'completed' ? (
                   <>
                     <FileImage className="w-4 h-4 mr-2" />
-                    生成{format === 'pdf' ? 'PDF' : 'Markdown'}
+                    {t.generate} {format === 'pdf' ? 'PDF' : 'Markdown'}
                   </>
                 ) : (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    处理中
+                    {t.generating}
                   </>
                 )}
               </Button>
@@ -207,16 +207,16 @@ export default function App() {
 
             {/* Format Selection */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">选择格式</label>
+              <label className="text-sm font-medium text-gray-700">{t.selectFormat}</label>
               <RadioGroup value={format} onValueChange={(value) => setFormat(value as 'pdf' | 'markdown')}>
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="pdf" id="pdf" />
-                    <label htmlFor="pdf" className="text-sm">PDF 格式</label>
+                    <label htmlFor="pdf" className="text-sm">{t.pdfFormat}</label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="markdown" id="markdown" />
-                    <label htmlFor="markdown" className="text-sm">Markdown 格式</label>
+                    <label htmlFor="markdown" className="text-sm">{t.markdownFormat}</label>
                   </div>
                 </div>
               </RadioGroup>
@@ -247,7 +247,7 @@ export default function App() {
                 className="w-full h-12 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
               >
                 <Download className="w-4 h-4 mr-2" />
-                {format === 'pdf' ? '下载PDF文件' : '下载Markdown文件 (ZIP)'}
+                {format === 'pdf' ? t.downloadPdf : t.downloadMarkdown}
               </Button>
             )}
 
@@ -266,25 +266,25 @@ export default function App() {
             <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mx-auto mb-2">
               <Link2 className="w-5 h-5 text-red-500" />
             </div>
-            <p className="text-sm text-gray-600">粘贴链接</p>
+            <p className="text-sm text-gray-600">{t.pasteLink}</p>
           </div>
           <div className="text-center">
             <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mx-auto mb-2">
               <Loader2 className="w-5 h-5 text-blue-500" />
             </div>
-            <p className="text-sm text-gray-600">自动解析</p>
+            <p className="text-sm text-gray-600">{t.autoParse}</p>
           </div>
           <div className="text-center">
             <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mx-auto mb-2">
               <Download className="w-5 h-5 text-green-500" />
             </div>
-            <p className="text-sm text-gray-600">下载</p>
+            <p className="text-sm text-gray-600">{t.download}</p>
           </div>
         </div>
 
         {/* Footer */}
         <p className="text-center text-xs text-gray-400 mt-8">
-          工具仅供学习使用，请遵守相关法律法规
+          {t.disclaimer}
         </p>
       </div>
     </div>
