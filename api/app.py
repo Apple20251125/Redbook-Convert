@@ -148,7 +148,8 @@ def get_chrome_executable_path() -> str | None:
 
 async def parse_xiaohongshu(url: str) -> NoteContent:
     """解析小红书笔记，获取标题、正文和图片URL"""
-    chrome_path = get_chrome_executable_path()
+    # Use default Playwright browser path
+    chrome_path = get_chrome_executable_path() if os.path.exists("/app/api/app.py") else None
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(

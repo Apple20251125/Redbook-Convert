@@ -26,18 +26,16 @@ RUN apt-get update && apt-get install -y \
     fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Playwright browsers
-RUN pip install playwright && \
-    playwright install chromium && \
-    playwright install-deps
-
 WORKDIR /app
 
 # Copy requirements
 COPY api/requirements.txt .
 
-# Install Python dependencies
+# Install Python dependencies FIRST
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Install Playwright browsers AFTER requirements are installed
+RUN playwright install chromium && playwright install-deps
 
 # Copy application (api folder)
 COPY api/ .
