@@ -1,37 +1,38 @@
-# 小红书笔记转PDF/Markdown工具
+# Xiaohongshu to PDF/Markdown Converter
 
-一个轻量级的Web工具，可以将小红书笔记/内容一键转换为PDF和Markdown格式，方便归档、分享或二次编辑。
+A lightweight web tool that converts Xiaohongshu (Little Red Book) notes/content into PDF and Markdown formats with one click, facilitating archiving, sharing, or secondary editing.
 
-## 功能特点
+## Features
 
-- 支持 xhslink.com 和 xiaohongshu.com 链接
-- 支持导出为 PDF 或 Markdown 格式
-- 自动提取笔记中的所有图片
-- 按阅读顺序生成文件
-- 支持中英文双语界面
-- 一键下载
+- Supports xhslink.com and xiaohongshu.com links
+- Export to PDF or Markdown format
+- Automatically extracts all images from notes
+- Generates files in reading order
+- Bilingual interface (Chinese/English)
+- One-click download
 
-## 项目结构
+## Project Structure
 
 ```
 xhs-pdf/
-├── app/                    # 前端React应用
-│   ├── src/               # 源代码
-│   └── dist/              # 构建后的静态文件
-├── api/                    # 后端API
-│   ├── app.py             # 主应用（整合前后端）
-│   ├── main.py            # 纯后端API
-│   ├── requirements.txt   # Python依赖
-│   └── downloads/         # 生成的文件
-├── docs/                   # 文档
-└── README.md              # 本文件
+├── app/                    # Frontend React application
+│   ├── src/               # Source code
+│   └── dist/              # Built static files
+├── api/                    # Backend API
+│   ├── app.py             # Main app (integrated frontend + backend)
+│   ├── main.py            # API-only mode
+│   ├── requirements.txt   # Python dependencies
+│   └── downloads/         # Generated files
+├── docs/                   # Documentation
+├── README.md              # English documentation
+└── README-CN.md          # Chinese documentation
 ```
 
-## 部署方式
+## Deployment
 
-### 方式一：整合部署（推荐）
+### Option 1: Integrated Deployment (Recommended)
 
-使用整合的 `app.py`，同时提供前端静态文件和后端API服务：
+Use integrated `app.py` to serve both frontend and backend:
 
 ```bash
 cd api
@@ -40,14 +41,14 @@ playwright install chromium
 python app.py
 ```
 
-访问 http://localhost:8000 即可使用。
+Visit http://localhost:8000 to use.
 
-### 方式二：前后端分离部署
+### Option 2: Separate Frontend and Backend
 
-1. 部署前端静态文件到任意静态服务器：
-   - 前端文件位于 `app/dist/`
+1. Deploy frontend static files to any static hosting:
+   - Frontend files are in `app/dist/`
 
-2. 启动后端API服务：
+2. Start backend API:
    ```bash
    cd api
    pip install -r requirements.txt
@@ -55,30 +56,30 @@ python app.py
    python main.py
    ```
 
-3. 修改前端配置：
-   - 编辑 `app/.env`
-   - 设置 `VITE_API_URL=http://your-backend-url:8000`
-   - 重新构建前端
+3. Update frontend configuration:
+   - Edit `app/.env`
+   - Set `VITE_API_URL=http://your-backend-url:8000`
+   - Rebuild the frontend
 
-## API接口
+## API Endpoints
 
 ### POST /api/convert
 
-转换小红书笔记为PDF或Markdown。
+Convert Xiaohongshu note to PDF or Markdown.
 
-**请求体：**
+**Request Body:**
 ```json
 {
   "url": "http://xhslink.com/xxx",
-  "format": "pdf" // 或 "markdown"
+  "format": "pdf" // or "markdown"
 }
 ```
 
-**响应：**
+**Response:**
 ```json
 {
   "success": true,
-  "message": "转换成功",
+  "message": "Conversion successful",
   "imageCount": 19,
   "downloadUrl": "/api/download/xxx.pdf",
   "filename": "xxx.pdf"
@@ -87,26 +88,26 @@ python app.py
 
 ### GET /api/download/{filename}
 
-下载生成的文件。
+Download generated file.
 
 ### GET /api/health
 
-健康检查接口。
+Health check endpoint.
 
-## 依赖要求
+## Requirements
 
 - Python 3.8+
-- Node.js 18+（仅开发前端时需要）
-- Chromium 浏览器（Playwright会自动安装）
+- Node.js 18+ (for frontend development only)
+- Chromium browser (automatically installed by Playwright)
 
-## 技术栈
+## Tech Stack
 
-- 前端：React + TypeScript + Vite + Tailwind CSS + shadcn/ui
-- 后端：FastAPI + Playwright + Pillow
-- 部署：Uvicorn
+- Frontend: React + TypeScript + Vite + Tailwind CSS + shadcn/ui
+- Backend: FastAPI + Playwright + Pillow
+- Deployment: Uvicorn
 
-## 注意事项
+## Disclaimer
 
-- 工具仅供学习使用，请遵守相关法律法规
-- 请尊重原创内容版权
-- 生成的文件会在服务器上临时存储，建议及时下载
+- For learning purposes only, please comply with relevant laws and regulations
+- Please respect original content copyright
+- Generated files are temporarily stored on the server, recommended to download promptly
