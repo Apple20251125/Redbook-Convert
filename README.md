@@ -1,5 +1,7 @@
 # Xiaohongshu to PDF/Markdown Converter
 
+![Screenshot](xhs-pdf-en.png)
+
 A lightweight web tool that converts Xiaohongshu (Little Red Book) notes/content into PDF and Markdown formats with one click, facilitating archiving, sharing, or secondary editing.
 
 ## Features
