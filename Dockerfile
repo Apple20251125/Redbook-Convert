@@ -1,6 +1,6 @@
-FROM python:3.11-slim
+FROM python:3.11
 
-# Install system dependencies for Playwright
+# Use Ubuntu base for Playwright compatibility
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -34,8 +34,8 @@ COPY api/requirements.txt .
 # Install Python dependencies FIRST
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright browsers AFTER requirements are installed
-RUN playwright install chromium && playwright install-deps
+# Install Playwright browsers
+RUN playwright install chromium
 
 # Copy application (api folder)
 COPY api/ .
