@@ -67,6 +67,10 @@ def _build_launch_args() -> List[str]:
             "--no-sandbox",
             "--disable-setuid-sandbox",
             "--disable-dev-shm-usage",
+            "--disable-crashpad",
+            "--disable-crash-reporter",
+            "--no-zygote",
+            "--disable-gpu",
         ]
     return common_args
 
