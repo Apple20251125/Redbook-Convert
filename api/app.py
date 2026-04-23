@@ -10,7 +10,7 @@ import os
 import uuid
 import zipfile
 import logging
-from typing import List, Literal, Dict
+from typing import List, Literal
 import platform
 
 # 配置日志
@@ -109,56 +109,44 @@ def sanitize_filename(filename: str) -> str:
     return cleaned
 
 
-def get_chrome_executable_path() -> str | None:
-    """获取系统安装的Chrome浏览器路径"""
-    system = platform.system()
-    possible_paths = []
+def _build_launch_args() -> List[str]:
+    """Build browser args by OS.
 
-    if system == "Darwin":  # macOS
-        possible_paths = [
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-            "/Applications/Chromium.app/Contents/MacOS/Chromium",
-            os.path.expanduser(
-                "~/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-            ),
-            os.path.expanduser("~/Applications/Chromium.app/Contents/MacOS/Chromium"),
+    Linux containers need sandbox-related args; macOS/Windows should avoid them.
+    """
+    common_args = ["--disable-blink-features=AutomationControlled"]
+    if platform.system() == "Linux":
+        return common_args + [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
         ]
-    elif system == "Windows":
-        possible_paths = [
-            "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-            "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-            os.path.expanduser(
-                "\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe"
-            ),
-        ]
-    elif system == "Linux":
-        possible_paths = [
-            "/usr/bin/google-chrome",
-            "/usr/bin/chromium",
-            "/usr/bin/chromium-browser",
-            "/snap/bin/chromium",
-        ]
+    return common_args
 
-    for path in possible_paths:
-        if os.path.exists(path):
-            return path
 
-    return None
+async def _launch_chromium(playwright_instance):
+    """Launch browser: preferred channel first, then fallback."""
+    common = {"headless": True, "args": _build_launch_args()}
+    is_macos = platform.system() == "Darwin"
+
+    try:
+        if is_macos:
+            # Use Chrome for Testing channel on macOS to avoid headless-shell path issues.
+            return await playwright_instance.chromium.launch(**common, channel="chromium")
+        return await playwright_instance.chromium.launch(**common)
+    except Exception as e:
+        logger.warning(
+            "Primary chromium launch failed (%s); retrying with channel=chrome. "
+            "If this keeps failing, run: playwright install chromium",
+            e,
+        )
+        return await playwright_instance.chromium.launch(**common, channel="chrome")
 
 
 async def parse_xiaohongshu(url: str) -> NoteContent:
     """解析小红书笔记，获取标题、正文和图片URL"""
     async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            headless=True,
-            channel="chromium",
-            args=[
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-blink-features=AutomationControlled'
-            ]
-        )
+        browser = await _launch_chromium(p)
         context = await browser.new_context(
             user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15A372 Safari/604.1"
         )

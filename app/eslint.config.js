@@ -20,4 +20,11 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  // shadcn/ui exports variants + hooks from the same file as components; relax fast-refresh rule there.
+  {
+    files: ['**/src/components/ui/**/*.{ts,tsx}', '**/src/contexts/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])

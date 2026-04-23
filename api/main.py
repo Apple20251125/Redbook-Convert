@@ -12,6 +12,7 @@ import logging
 from typing import List, Literal
 import zipfile
 import asyncio
+import platform
 
 # 配置日志
 logging.basicConfig(
@@ -54,6 +55,43 @@ class NoteContent(BaseModel):
     title: str
     content: str
     images: List[str]
+
+def _build_launch_args() -> List[str]:
+    """Build browser args by OS.
+
+    Linux containers need sandbox-related args; macOS/Windows should avoid them.
+    """
+    common_args = ["--disable-blink-features=AutomationControlled"]
+    if platform.system() == "Linux":
+        return common_args + [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+        ]
+    return common_args
+
+
+async def _launch_chromium(playwright_instance):
+    """Launch browser: bundled Chromium first (matches Playwright), then Chrome channel.
+
+    Avoid executable_path to system Chrome — driver/CDP mismatch often crashes with SIGABRT on macOS.
+    """
+    common = {"headless": True, "args": _build_launch_args()}
+    is_macos = platform.system() == "Darwin"
+
+    try:
+        if is_macos:
+            # Use Chrome for Testing channel on macOS to avoid headless-shell path issues.
+            return await playwright_instance.chromium.launch(**common, channel="chromium")
+        return await playwright_instance.chromium.launch(**common)
+    except Exception as e:
+        logger.warning(
+            "Primary chromium launch failed (%s); retrying with channel=chrome. "
+            "If this keeps failing, run: playwright install chromium",
+            e,
+        )
+        return await playwright_instance.chromium.launch(**common, channel="chrome")
+
 
 def extract_url(text: str) -> str:
     """从文本中提取小红书链接"""
@@ -101,21 +139,16 @@ def sanitize_filename(filename: str) -> str:
 
 async def parse_xiaohongshu(url: str) -> NoteContent:
     """解析小红书笔记，获取标题、正文和图片URL"""
-    # 使用系统安装的 Chrome 浏览器
-    chrome_path = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
     async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            headless=True,
-            executable_path=chrome_path if os.path.exists(chrome_path) else None
-        )
+        browser = await _launch_chromium(p)
         context = await browser.new_context(
             user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15A372 Safari/604.1'
         )
         page = await context.new_page()
 
         try:
-            await page.goto(url, wait_until='networkidle', timeout=30000)
-            await page.wait_for_timeout(5000)
+            await page.goto(url, wait_until="domcontentloaded", timeout=60000)
+            await page.wait_for_timeout(8000)
 
             # 提取标题
             title = await page.title()
