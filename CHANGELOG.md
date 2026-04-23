@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- Stabilized Playwright browser launch on macOS and Railway environments.
+- Added Linux-specific Chromium launch flags to avoid `chrome_crashpad_handler` startup failures on Railway.
+- Unified browser launch behavior between `api/app.py` (integrated mode) and `api/main.py` (API-only mode).
+
+### Docs
+- Added Railway deployment notes and Playwright troubleshooting sections to `README.md` and `README-ZH.md`.
+
 ## [1.0.0] - 2026-03-13
 
 ### Added

@@ -33,8 +33,8 @@ Thank you for your interest in contributing!
 
 ```bash
 # Clone the repository
-git clone https://github.com/Apple20251125/xiaohongshu-convert.git
-cd xiaohongshu-convert
+git clone https://github.com/Apple20251125/Redbook-Convert.git
+cd Redbook-Convert
 
 # Install frontend dependencies
 cd app && npm install
@@ -47,7 +47,7 @@ playwright install chromium
 
 # Run development servers
 # Terminal 1: Backend
-cd api && python app.py
+cd api && python main.py
 
 # Terminal 2: Frontend (dev mode)
 cd app && npm run dev
