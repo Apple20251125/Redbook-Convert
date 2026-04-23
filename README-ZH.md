@@ -51,6 +51,16 @@ python app.py
 
 访问 http://localhost:8000 即可使用。
 
+### Railway（Dockerfile 部署）
+
+本仓库已通过 `Dockerfile` + `railway.json` 适配 Railway。
+
+- 线上运行入口是 `api/app.py`（前后端整合），不是 `api/main.py`
+- 构建阶段已包含 `playwright install chromium`
+- `api/app.py` 与 `api/main.py` 都已包含 Linux 容器稳定启动参数（适配 Railway）
+
+代码推送到 `main` 后，Railway 会自动重新部署。
+
 ### 方式二：前后端分离部署
 
 1. 部署前端静态文件到任意静态服务器：
@@ -68,6 +78,19 @@ python app.py
    - 编辑 `app/.env`
    - 设置 `VITE_API_URL=http://your-backend-url:8000`
    - 重新构建前端
+
+## 常见问题（Railway / Playwright）
+
+如果日志出现 `chrome_crashpad_handler: Resource temporarily unavailable (11)`：
+
+- 确认线上已部署到最新代码（包含 `api/app.py` 的 Linux 启动参数）
+- 确认服务启动命令为 `uvicorn app:app`（与 `Dockerfile` 一致）
+- 更新后可手动触发一次 Redeploy
+
+快速验证：
+
+- `GET /api/health` 返回 `{"status":"ok"}`
+- 再调用 `POST /api/convert` 测试有效 `xhslink.com` 链接
 
 ## API接口
 

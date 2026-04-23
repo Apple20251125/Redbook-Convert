@@ -51,6 +51,16 @@ python app.py
 
 Visit http://localhost:8000 to use.
 
+### Railway (Dockerfile deployment)
+
+This repo is configured for Railway via `Dockerfile` + `railway.json`.
+
+- Runtime entrypoint is `api/app.py` (integrated frontend + backend), not `api/main.py`
+- Build includes `playwright install chromium`
+- Linux container launch flags are tuned in both `api/app.py` and `api/main.py` for Railway stability
+
+After pushing to `main`, Railway will auto-redeploy.
+
 ### Option 2: Separate Frontend and Backend
 
 1. Deploy frontend static files to any static hosting:
@@ -68,6 +78,19 @@ Visit http://localhost:8000 to use.
    - Edit `app/.env`
    - Set `VITE_API_URL=http://your-backend-url:8000`
    - Rebuild the frontend
+
+## Troubleshooting (Railway / Playwright)
+
+If logs show `chrome_crashpad_handler: Resource temporarily unavailable (11)`:
+
+- Ensure latest code is deployed (contains Linux launch args in `api/app.py`)
+- Confirm service actually runs `uvicorn app:app` (from `Dockerfile`)
+- Trigger a manual redeploy once after updating
+
+Quick checks:
+
+- `GET /api/health` should return `{"status":"ok"}`
+- Then call `POST /api/convert` with a valid `xhslink.com` URL
 
 ## API Endpoints
 
