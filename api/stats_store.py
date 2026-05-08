@@ -321,6 +321,126 @@ def render_stats_dashboard(stats: dict) -> str:
 </html>"""
 
 
+def render_stats_login_page(error_message: str | None = None) -> str:
+    error_html = ""
+    if error_message:
+        error_html = f'<div class="error">{html.escape(error_message)}</div>'
+
+    return f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stats Login</title>
+  <style>
+    :root {{
+      --bg: #fff8f6;
+      --card: rgba(255,255,255,.92);
+      --border: rgba(251, 113, 133, .2);
+      --text: #1f2937;
+      --muted: #6b7280;
+      --accent: #ef4444;
+      --shadow: 0 20px 60px rgba(239, 68, 68, .14);
+    }}
+    * {{ box-sizing: border-box; }}
+    body {{
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(251, 113, 133, .18), transparent 26%),
+        radial-gradient(circle at bottom right, rgba(239, 68, 68, .10), transparent 28%),
+        linear-gradient(180deg, #fff 0%, var(--bg) 100%);
+    }}
+    .card {{
+      width: min(100%, 420px);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+      backdrop-filter: blur(12px);
+    }}
+    .eyebrow {{
+      display: inline-flex;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(239, 68, 68, .08);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }}
+    h1 {{ margin: 14px 0 10px; font-size: 32px; line-height: 1.05; }}
+    p {{ margin: 0 0 18px; color: var(--muted); line-height: 1.6; }}
+    label {{ display: block; margin-bottom: 8px; font-size: 14px; font-weight: 600; }}
+    input {{
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(0,0,0,.08);
+      font-size: 15px;
+      outline: none;
+    }}
+    input:focus {{
+      border-color: rgba(239, 68, 68, .45);
+      box-shadow: 0 0 0 4px rgba(239, 68, 68, .08);
+    }}
+    button {{
+      width: 100%;
+      margin-top: 16px;
+      border: 0;
+      border-radius: 16px;
+      padding: 14px 16px;
+      font-size: 15px;
+      font-weight: 700;
+      color: white;
+      background: linear-gradient(135deg, #ef4444, #fb7185);
+      cursor: pointer;
+    }}
+    .error {{
+      margin-bottom: 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      color: #b91c1c;
+      background: rgba(239, 68, 68, .08);
+      border: 1px solid rgba(239, 68, 68, .14);
+      font-size: 14px;
+    }}
+    .hint {{
+      margin-top: 14px;
+      font-size: 13px;
+      color: var(--muted);
+    }}
+    code {{
+      background: rgba(0,0,0,.05);
+      padding: 2px 6px;
+      border-radius: 8px;
+    }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="eyebrow">Protected Stats</div>
+    <h1>输入访问密钥</h1>
+    <p>这个统计面板已受保护。输入正确的密钥后，浏览器会记住本次登录状态。</p>
+    {error_html}
+    <form method="post" action="/api/stats/login">
+      <label for="stats_key">X-Stats-Key</label>
+      <input id="stats_key" name="stats_key" type="password" placeholder="请输入统计访问密钥" autocomplete="current-password" required />
+      <button type="submit">进入 Dashboard</button>
+    </form>
+    <div class="hint">脚本调用仍可继续使用请求头 <code>X-Stats-Key</code>。</div>
+  </div>
+</body>
+</html>"""
+
+
 def safe_init_stats_db() -> None:
     try:
         init_stats_db()

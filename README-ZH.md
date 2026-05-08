@@ -158,7 +158,7 @@ python app.py
 }
 ```
 
-如果配置了 `STATS_API_KEY`，请求时需要带上请求头 `X-Stats-Key: your-key`。
+如果配置了 `STATS_API_KEY`，浏览器访问会先看到登录页；脚本请求仍可带上请求头 `X-Stats-Key: your-key`。
 
 ## 访问统计与转化统计
 

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import FastAPI, Form, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -18,6 +18,7 @@ from stats_store import (
     record_conversion,
     record_visit,
     render_stats_dashboard,
+    render_stats_login_page,
     safe_init_stats_db,
 )
 
@@ -135,12 +136,16 @@ def sanitize_filename(filename: str) -> str:
     return cleaned
 
 
-def require_stats_api_key(x_stats_key: str | None) -> None:
+def is_valid_stats_api_key(stats_key: str | None) -> bool:
     configured_key = os.getenv("STATS_API_KEY")
     if not configured_key:
-        return
+        return True
 
-    if x_stats_key != configured_key:
+    return stats_key == configured_key
+
+
+def require_stats_api_key(x_stats_key: str | None) -> None:
+    if not is_valid_stats_api_key(x_stats_key):
         raise HTTPException(status_code=401, detail="未授权访问统计接口")
 
 
@@ -575,15 +580,46 @@ async def track_visit(request: VisitRequest):
 @app.get("/api/stats", response_model=StatsResponse)
 async def get_stats(request: Request, x_stats_key: str | None = Header(default=None)):
     """获取访问与转换统计"""
-    require_stats_api_key(x_stats_key)
+    stats_key = x_stats_key or request.cookies.get("stats_key")
+    wants_json = request.query_params.get("format") == "json" or "application/json" in request.headers.get("accept", "")
+
+    if not is_valid_stats_api_key(stats_key):
+        if wants_json:
+            raise HTTPException(status_code=401, detail="未授权访问统计接口")
+
+        from fastapi.responses import HTMLResponse
+
+        return HTMLResponse(render_stats_login_page(), status_code=401)
+
     stats = get_stats_summary()
 
-    if request.query_params.get("format") == "json" or "application/json" in request.headers.get("accept", ""):
+    if wants_json:
         return stats
 
     from fastapi.responses import HTMLResponse
 
     return HTMLResponse(render_stats_dashboard(stats))
+
+
+@app.post("/api/stats/login")
+async def stats_login(request: Request, stats_key: str = Form(...)):
+    if not is_valid_stats_api_key(stats_key):
+        from fastapi.responses import HTMLResponse
+
+        return HTMLResponse(render_stats_login_page("密钥不正确，请重试。"), status_code=401)
+
+    from fastapi.responses import RedirectResponse
+
+    response = RedirectResponse(url="/api/stats", status_code=303)
+    response.set_cookie(
+        key="stats_key",
+        value=stats_key,
+        httponly=True,
+        secure=request.url.scheme == "https",
+        samesite="lax",
+        max_age=60 * 60 * 24 * 7,
+    )
+    return response
 
 
 @app.get("/api/health")

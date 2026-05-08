@@ -158,7 +158,7 @@ Open in a browser to view the dashboard; append `?format=json` for raw JSON.
 }
 ```
 
-If `STATS_API_KEY` is configured, include request header `X-Stats-Key: your-key`.
+If `STATS_API_KEY` is configured, browser access shows a login page first; scripts can still include header `X-Stats-Key: your-key`.
 
 ## Traffic & Conversion Stats
 
