@@ -297,7 +297,7 @@ async def download_images(image_urls: List[str], task_id: str, title: str = "小
 async def build_text_page(title: str, content: str):
     safe_title = html.escape(title or "小红书笔记")
     safe_content = html.escape(content or "未提取到正文，以下为图片内容。")
-    html = f"""
+    page_html = f"""
     <!doctype html>
     <html>
       <head>
@@ -351,7 +351,7 @@ async def build_text_page(title: str, content: str):
     async with async_playwright() as p:
         browser = await _launch_chromium(p)
         page = await browser.new_page(viewport={"width": 1240, "height": 1754}, device_scale_factor=2)
-        await page.set_content(html, wait_until="load")
+        await page.set_content(page_html, wait_until="load")
         element = await page.query_selector("body")
         if not element:
             await browser.close()
