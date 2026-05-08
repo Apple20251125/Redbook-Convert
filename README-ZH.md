@@ -125,6 +125,68 @@ python app.py
 
 健康检查接口。
 
+### POST /api/track-visit
+
+记录一次匿名访问。
+
+**请求体：**
+```json
+{
+  "visitorId": "anonymous-uuid",
+  "path": "/"
+}
+```
+
+### GET /api/stats
+
+获取访问与转换统计。
+
+直接在浏览器打开会显示 dashboard；加上 `?format=json` 可返回原始 JSON。
+
+**响应：**
+```json
+{
+  "totalVisits": 120,
+  "uniqueVisitors": 87,
+  "totalConversions": 42,
+  "pdfCount": 30,
+  "markdownCount": 12,
+  "lastVisitAt": "2026-05-08T03:12:00+00:00",
+  "lastConversionAt": "2026-05-08T03:18:00+00:00",
+  "databasePath": "/data/stats.db",
+  "statsProtected": true
+}
+```
+
+如果配置了 `STATS_API_KEY`，请求时需要带上请求头 `X-Stats-Key: your-key`。
+
+## 访问统计与转化统计
+
+项目现在会统计：
+
+- `totalVisits`：网站总访问次数
+- `uniqueVisitors`：近似独立访客数（基于浏览器本地匿名访客 ID）
+- `pdfCount`：成功生成 PDF 的次数
+- `markdownCount`：成功生成 Markdown ZIP 的次数
+
+统计数据存储在 SQLite 中，默认路径为：
+
+```bash
+api/data/stats.db
+```
+
+你也可以通过环境变量覆盖：
+
+```bash
+STATS_DB_PATH=/data/stats.db
+```
+
+推荐的 Railway 配置：
+
+- 添加一个持久化 Volume，并挂载到 `/data`
+- 设置 `STATS_DB_PATH=/data/stats.db`
+- 可选设置 `STATS_API_KEY=你的密钥`，保护 `/api/stats` 接口
+
 ## 依赖要求
 
 - Python 3.8+

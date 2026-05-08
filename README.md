@@ -125,6 +125,68 @@ Download generated file.
 
 Health check endpoint.
 
+### POST /api/track-visit
+
+Track an anonymous site visit.
+
+**Request Body:**
+```json
+{
+  "visitorId": "anonymous-uuid",
+  "path": "/"
+}
+```
+
+### GET /api/stats
+
+Get traffic and conversion stats.
+
+Open in a browser to view the dashboard; append `?format=json` for raw JSON.
+
+**Response:**
+```json
+{
+  "totalVisits": 120,
+  "uniqueVisitors": 87,
+  "totalConversions": 42,
+  "pdfCount": 30,
+  "markdownCount": 12,
+  "lastVisitAt": "2026-05-08T03:12:00+00:00",
+  "lastConversionAt": "2026-05-08T03:18:00+00:00",
+  "databasePath": "/data/stats.db",
+  "statsProtected": true
+}
+```
+
+If `STATS_API_KEY` is configured, include request header `X-Stats-Key: your-key`.
+
+## Traffic & Conversion Stats
+
+The project now tracks:
+
+- `totalVisits`: total site opens recorded by the frontend
+- `uniqueVisitors`: approximate unique users based on an anonymous browser-local visitor ID
+- `pdfCount`: number of successful PDF generations
+- `markdownCount`: number of successful Markdown ZIP generations
+
+Data is stored in SQLite. By default the backend writes to:
+
+```bash
+api/data/stats.db
+```
+
+You can override the path with:
+
+```bash
+STATS_DB_PATH=/data/stats.db
+```
+
+Recommended Railway setup:
+
+- Add a persistent volume and mount it to `/data`
+- Set `STATS_DB_PATH=/data/stats.db`
+- Optionally set `STATS_API_KEY=your-secret-key` to protect `/api/stats`
+
 ## Requirements
 
 - Python 3.8+

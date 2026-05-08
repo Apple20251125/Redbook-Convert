@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -14,6 +14,14 @@ import zipfile
 import asyncio
 import platform
 
+from stats_store import (
+    get_stats_summary,
+    record_conversion,
+    record_visit,
+    render_stats_dashboard,
+    safe_init_stats_db,
+)
+
 # 配置日志
 logging.basicConfig(
     level=logging.INFO,
@@ -22,6 +30,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="小红书笔记转PDF API")
+safe_init_stats_db()
 
 # CORS配置
 app.add_middleware(
@@ -43,6 +52,10 @@ class ConvertRequest(BaseModel):
     format: Literal["pdf", "markdown"] = "pdf"  # 使用 Literal 进行验证
     originalText: str = ""  # 原始输入文本，用于提取文件名
 
+class VisitRequest(BaseModel):
+    visitorId: str
+    path: str = "/"
+
 class ConvertResponse(BaseModel):
     success: bool
     message: str
@@ -51,10 +64,29 @@ class ConvertResponse(BaseModel):
     downloadUrl: str = ""
     filename: str = ""
 
+class StatsResponse(BaseModel):
+    totalVisits: int
+    uniqueVisitors: int
+    totalConversions: int
+    pdfCount: int
+    markdownCount: int
+    lastVisitAt: str | None = None
+    lastConversionAt: str | None = None
+    databasePath: str
+    statsProtected: bool
+
 class NoteContent(BaseModel):
     title: str
     content: str
     images: List[str]
+
+def require_stats_api_key(x_stats_key: str | None) -> None:
+    configured_key = os.getenv("STATS_API_KEY")
+    if not configured_key:
+        return
+
+    if x_stats_key != configured_key:
+        raise HTTPException(status_code=401, detail="未授权访问统计接口")
 
 def _build_launch_args() -> List[str]:
     """Build browser args by OS.
@@ -406,7 +438,7 @@ def cleanup_task_files(task_id: str):
             logger.warning(f"删除目录失败 {task_dir}: {e}")
 
 @app.post("/api/convert", response_model=ConvertResponse)
-async def convert_note(request: ConvertRequest):
+async def convert_note(request: ConvertRequest, x_visitor_id: str | None = Header(default=None)):
     """转换小红书笔记为 PDF 或 Markdown"""
     task_id = str(uuid.uuid4())
 
@@ -454,6 +486,7 @@ async def convert_note(request: ConvertRequest):
 
             logger.info("开始生成 PDF...")
             create_pdf(image_paths, pdf_path)
+            record_conversion("pdf", pdf_filename, x_visitor_id)
 
             cleanup_task_files(task_id)
 
@@ -481,6 +514,7 @@ async def convert_note(request: ConvertRequest):
 
             logger.info("开始打包 ZIP...")
             create_zip(md_path, task_dir, zip_path)
+            record_conversion("markdown", zip_filename, x_visitor_id)
 
             cleanup_task_files(task_id)
 
@@ -518,6 +552,29 @@ async def download_pdf(filename: str):
         media_type="application/pdf",
         filename=filename
     )
+
+@app.post("/api/track-visit")
+async def track_visit(request: VisitRequest):
+    """记录页面访问"""
+    visitor_id = request.visitorId.strip()
+    if not visitor_id:
+        raise HTTPException(status_code=400, detail="visitorId 不能为空")
+
+    record_visit(visitor_id, request.path)
+    return {"success": True}
+
+@app.get("/api/stats", response_model=StatsResponse)
+async def get_stats(request: Request, x_stats_key: str | None = Header(default=None)):
+    """获取访问与转换统计"""
+    require_stats_api_key(x_stats_key)
+    stats = get_stats_summary()
+
+    if request.query_params.get("format") == "json" or "application/json" in request.headers.get("accept", ""):
+        return stats
+
+    from fastapi.responses import HTMLResponse
+
+    return HTMLResponse(render_stats_dashboard(stats))
 
 @app.get("/api/health")
 async def health_check():

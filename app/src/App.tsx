@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Download, Link2, Loader2, FileImage, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { LanguageSwitch } from '@/components/LanguageSwitch';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { getOrCreateVisitorId, trackVisit } from '@/lib/analytics';
 
 interface ConversionStatus {
   status: 'idle' | 'parsing' | 'downloading' | 'generating' | 'completed' | 'error';
@@ -37,6 +38,7 @@ export default function App() {
   const { t } = useLanguage();
   const [url, setUrl] = useState('');
   const [format, setFormat] = useState<'pdf' | 'markdown'>('pdf');
+  const [visitorId, setVisitorId] = useState('');
   const [conversion, setConversion] = useState<ConversionStatus>({
     status: 'idle',
     message: '',
@@ -45,6 +47,15 @@ export default function App() {
 
   // Update message when language changes
   const displayMessage = conversion.status === 'idle' && !conversion.message ? t.inputUrl : conversion.message;
+
+  useEffect(() => {
+    const currentVisitorId = getOrCreateVisitorId();
+    setVisitorId(currentVisitorId);
+
+    trackVisit(API_BASE_URL, currentVisitorId, window.location.pathname).catch((error) => {
+      console.error('Failed to track visit:', error);
+    });
+  }, []);
 
   const handleSubmit = async () => {
     if (!url.trim()) {
@@ -83,6 +94,7 @@ export default function App() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Visitor-Id': visitorId || getOrCreateVisitorId(),
         },
         body: JSON.stringify({ url: extractedUrl, format, originalText: url }),
       });
