@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y \
     libatspi2.0-0 \
     fonts-liberation \
     fonts-noto-cjk \
+    fonts-noto-color-emoji \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
