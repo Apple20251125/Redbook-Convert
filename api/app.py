@@ -23,6 +23,13 @@ from stats_store import (
     render_stats_login_page,
     safe_init_stats_db,
 )
+from note_cache import (
+    NoteCacheEntry,
+    entry_has_images,
+    evict_expired,
+    get_entry,
+    save_entry,
+)
 
 # 配置日志
 logging.basicConfig(
@@ -53,6 +60,7 @@ class ConvertRequest(BaseModel):
     url: str
     format: Literal["pdf", "markdown"] = "pdf"  # 使用 Literal 进行验证
     originalText: str = ""  # 原始输入文本，用于提取文件名
+    sessionId: str = ""  # 复用同笔记已解析结果，切换 PDF/Markdown 时免重复解析
 
 
 class VisitRequest(BaseModel):
@@ -73,6 +81,8 @@ class ConvertResponse(BaseModel):
     format: str = "pdf"  # 新增
     downloadUrl: str = ""  # 重命名：原 pdfUrl
     filename: str = ""
+    sessionId: str = ""
+    fromCache: bool = False
 
 
 class StatsResponse(BaseModel):
@@ -526,56 +536,93 @@ def cleanup_task_files(task_id: str):
 @app.post("/api/convert", response_model=ConvertResponse)
 async def convert_note(request: ConvertRequest, x_visitor_id: str | None = Header(default=None)):
     """转换小红书笔记为 PDF 或 Markdown"""
-    task_id = str(uuid.uuid4())
+    evict_expired(cleanup_task_files)
 
-    # 从原始文本提取标题作为文件名
     title = extract_title_from_text(request.originalText or request.url)
     clean_title = sanitize_filename(title)
-    logger.info(f"提取的标题: {clean_title}")
+    extracted_url = extract_url(request.url)
+    previous_entry, cache_key = get_entry(request.sessionId or None, extracted_url)
+    cache_entry = previous_entry
+    from_cache = False
+    task_id = cache_entry.task_id if cache_entry else str(uuid.uuid4())
+
+    logger.info(f"提取的标题: {clean_title}, 格式: {request.format}, session: {cache_key[:8]}...")
 
     try:
-        # 1. 解析小红书笔记
-        extracted_url = extract_url(request.url)
-        logger.info(f"开始解析笔记: {extracted_url}, 格式: {request.format}")
-
-        note_content = await parse_xiaohongshu(extracted_url)
-
-        if not note_content.images:
-            raise HTTPException(
-                status_code=400, detail="未找到笔记图片，请检查链接是否正确"
+        if cache_entry and cache_entry.extracted_url == extracted_url and entry_has_images(cache_entry):
+            logger.info("复用已缓存的笔记解析与图片")
+            note_content = NoteContent(
+                title=cache_entry.title,
+                content=cache_entry.content,
+                images=cache_entry.image_urls,
             )
+            image_paths = cache_entry.image_paths
+            task_id = cache_entry.task_id
+            from_cache = True
+            if clean_title != cache_entry.clean_title:
+                cache_entry.clean_title = clean_title
+        else:
+            logger.info(f"开始解析笔记: {extracted_url}")
+            note_content = await parse_xiaohongshu(extracted_url)
 
-        # Markdown 格式需要检查是否有正文
+            if not note_content.images:
+                raise HTTPException(
+                    status_code=400, detail="未找到笔记图片，请检查链接是否正确"
+                )
+
+            logger.info(f"找到 {len(note_content.images)} 张图片，开始下载图片...")
+            image_paths = await download_images(note_content.images, task_id, clean_title)
+
+            if not image_paths:
+                raise HTTPException(status_code=500, detail="图片下载失败")
+
+            cache_entry = NoteCacheEntry(
+                extracted_url=extracted_url,
+                task_id=task_id,
+                clean_title=clean_title,
+                title=note_content.title,
+                content=note_content.content,
+                image_urls=note_content.images,
+                image_paths=image_paths,
+                pdf_filename=previous_entry.pdf_filename if previous_entry else None,
+                zip_filename=previous_entry.zip_filename if previous_entry else None,
+            )
+            save_entry(cache_key, cache_entry)
+
         if request.format == "markdown" and not note_content.content:
             raise HTTPException(
                 status_code=400, detail="未找到笔记正文，请检查链接是否正确"
             )
 
-        logger.info(f"找到 {len(note_content.images)} 张图片")
-
-        # 2. 下载图片
-        logger.info("开始下载图片...")
-        image_paths = await download_images(note_content.images, task_id, clean_title)
-
-        if not image_paths:
-            raise HTTPException(status_code=500, detail="图片下载失败")
-
-        logger.info(f"成功下载 {len(image_paths)} 张图片")
-
-        # 3. 根据格式生成文件
         task_dir = os.path.join(OUTPUT_DIR, task_id)
 
         if request.format == "pdf":
-            # PDF 流程
             pdf_filename = f"{clean_title}.pdf"
             pdf_path = os.path.join(OUTPUT_DIR, pdf_filename)
+
+            if (
+                cache_entry
+                and cache_entry.pdf_filename == pdf_filename
+                and os.path.isfile(pdf_path)
+            ):
+                logger.info("复用已生成的 PDF")
+                return ConvertResponse(
+                    success=True,
+                    message="转换成功",
+                    imageCount=len(image_paths),
+                    format="pdf",
+                    downloadUrl=f"/api/download/{pdf_filename}",
+                    filename=pdf_filename,
+                    sessionId=cache_key,
+                    fromCache=True,
+                )
 
             logger.info("开始生成 PDF...")
             text_page = await build_text_page(note_content.title, note_content.content)
             create_pdf(text_page, image_paths, pdf_path)
             record_conversion("pdf", pdf_filename, x_visitor_id)
-
-            cleanup_task_files(task_id)
+            cache_entry.pdf_filename = pdf_filename
+            save_entry(cache_key, cache_entry)
 
             return ConvertResponse(
                 success=True,
@@ -583,27 +630,43 @@ async def convert_note(request: ConvertRequest, x_visitor_id: str | None = Heade
                 imageCount=len(image_paths),
                 format="pdf",
                 downloadUrl=f"/api/download/{pdf_filename}",
-                filename=pdf_filename
+                filename=pdf_filename,
+                sessionId=cache_key,
+                fromCache=from_cache,
             )
 
-        elif request.format == "markdown":
-            # Markdown 流程
+        if request.format == "markdown":
+            zip_filename = f"{clean_title}.zip"
+            zip_path = os.path.join(OUTPUT_DIR, zip_filename)
+
+            if (
+                cache_entry
+                and cache_entry.zip_filename == zip_filename
+                and os.path.isfile(zip_path)
+            ):
+                logger.info("复用已生成的 Markdown ZIP")
+                return ConvertResponse(
+                    success=True,
+                    message="转换成功",
+                    imageCount=len(image_paths),
+                    format="markdown",
+                    downloadUrl=f"/api/download/{zip_filename}",
+                    filename=zip_filename,
+                    sessionId=cache_key,
+                    fromCache=True,
+                )
+
             md_filename = f"{clean_title}.md"
             md_path = os.path.join(task_dir, md_filename)
 
-            # 生成 markdown
             logger.info("开始生成 Markdown...")
             create_markdown(note_content.title, note_content.content, image_paths, md_path)
-
-            # 打包 ZIP
-            zip_filename = f"{clean_title}.zip"
-            zip_path = os.path.join(OUTPUT_DIR, zip_filename)
 
             logger.info("开始打包 ZIP...")
             create_zip(md_path, task_dir, zip_path)
             record_conversion("markdown", zip_filename, x_visitor_id)
-
-            cleanup_task_files(task_id)
+            cache_entry.zip_filename = zip_filename
+            save_entry(cache_key, cache_entry)
 
             return ConvertResponse(
                 success=True,
@@ -611,18 +674,20 @@ async def convert_note(request: ConvertRequest, x_visitor_id: str | None = Heade
                 imageCount=len(image_paths),
                 format="markdown",
                 downloadUrl=f"/api/download/{zip_filename}",
-                filename=zip_filename
+                filename=zip_filename,
+                sessionId=cache_key,
+                fromCache=from_cache,
             )
 
-        else:
-            cleanup_task_files(task_id)
-            raise HTTPException(status_code=400, detail=f"不支持的格式: {request.format}")
+        raise HTTPException(status_code=400, detail=f"不支持的格式: {request.format}")
 
     except HTTPException:
-        cleanup_task_files(task_id)
+        if not cache_entry:
+            cleanup_task_files(task_id)
         raise
     except Exception as e:
-        cleanup_task_files(task_id)
+        if not cache_entry:
+            cleanup_task_files(task_id)
         logger.error(f"转换失败: {str(e)}")
         raise HTTPException(status_code=500, detail=f"转换失败: {str(e)}")
 

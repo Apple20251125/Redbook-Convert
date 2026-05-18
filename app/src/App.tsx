@@ -39,6 +39,8 @@ export default function App() {
   const [url, setUrl] = useState('');
   const [format, setFormat] = useState<'pdf' | 'markdown'>('pdf');
   const [visitorId, setVisitorId] = useState('');
+  const [sessionId, setSessionId] = useState('');
+  const [cachedUrl, setCachedUrl] = useState('');
   const [conversion, setConversion] = useState<ConversionStatus>({
     status: 'idle',
     message: '',
@@ -83,10 +85,12 @@ export default function App() {
       setUrl(extractedUrl);
     }
 
+    const reuseSession = Boolean(sessionId && cachedUrl === extractedUrl);
+
     setConversion({
-      status: 'parsing',
-      message: t.parsing,
-      progress: 10,
+      status: reuseSession ? 'generating' : 'parsing',
+      message: reuseSession ? t.generating : t.parsing,
+      progress: reuseSession ? 60 : 10,
     });
 
     try {
@@ -96,7 +100,12 @@ export default function App() {
           'Content-Type': 'application/json',
           'X-Visitor-Id': visitorId || getOrCreateVisitorId(),
         },
-        body: JSON.stringify({ url: extractedUrl, format, originalText: url }),
+        body: JSON.stringify({
+          url: extractedUrl,
+          format,
+          originalText: url,
+          sessionId: reuseSession ? sessionId : '',
+        }),
       });
 
       if (!response.ok) {
@@ -107,6 +116,11 @@ export default function App() {
       const data = await response.json();
 
       if (data.success) {
+        if (data.sessionId) {
+          setSessionId(data.sessionId);
+          setCachedUrl(extractedUrl);
+        }
+
         // 构建完整的下载URL
         const fullDownloadUrl = data.downloadUrl.startsWith('http')
           ? data.downloadUrl
@@ -192,7 +206,15 @@ export default function App() {
                 <Input
                   placeholder={t.linkPlaceholder}
                   value={url}
-                  onChange={(e) => setUrl(e.target.value)}
+                  onChange={(e) => {
+                    const nextUrl = e.target.value;
+                    setUrl(nextUrl);
+                    const nextExtracted = extractXhsUrl(nextUrl);
+                    if (cachedUrl && nextExtracted !== cachedUrl) {
+                      setSessionId('');
+                      setCachedUrl('');
+                    }
+                  }}
                   className="pl-10 h-12"
                   disabled={conversion.status === 'parsing' || conversion.status === 'downloading' || conversion.status === 'generating'}
                   onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
