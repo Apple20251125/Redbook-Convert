@@ -1,10 +1,14 @@
 {
-  "$schema": "https://railway.app/schema.json",
+  "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "dockerfile": "Dockerfile"
   },
   "deploy": {
-    "numReplicas": 1,
+    "multiRegionConfig": {
+      "asia-southeast1-eqsg3a": {
+        "numReplicas": 1
+      }
+    },
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",
