@@ -25,6 +25,9 @@ node_modules/
 # Downloads (generated PDFs/images)
 api/downloads/
 
+# Local stats database (runtime)
+api/data/
+
 # Environment
 .env
 .env.local
