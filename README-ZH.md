@@ -13,7 +13,7 @@
 ## 功能特点
 
 - 支持 xhslink.com 和 xiaohongshu.com 链接
-- 支持导出为 PDF 或 Markdown 格式
+- 支持导出为 PDF 或 Markdown 格式（PDF 包含正文页与图片）
 - 自动提取笔记中的所有图片
 - 按阅读顺序生成文件
 - 支持中英文双语界面

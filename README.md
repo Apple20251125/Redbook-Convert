@@ -13,7 +13,7 @@
 ## Features
 
 - Supports xhslink.com and xiaohongshu.com links
-- Export to PDF or Markdown format
+- Export to PDF or Markdown format (PDF includes a text page plus images)
 - Automatically extracts all images from notes
 - Generates files in reading order
 - Bilingual interface (Chinese/English)

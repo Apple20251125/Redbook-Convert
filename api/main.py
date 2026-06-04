@@ -31,6 +31,7 @@ from note_cache import (
     get_entry,
     save_entry,
 )
+from xhs_parser import extract_page_note, fetch_note_via_http, navigate_to_note
 
 # 配置日志
 logging.basicConfig(
@@ -192,75 +193,26 @@ def sanitize_filename(filename: str) -> str:
 
 async def parse_xiaohongshu(url: str) -> NoteContent:
     """解析小红书笔记，获取标题、正文和图片URL"""
+    http_result = await fetch_note_via_http(url)
+    if http_result and http_result[2]:
+        title, content, unique_urls = http_result
+        return NoteContent(title=title, content=content, images=unique_urls)
+
     async with async_playwright() as p:
         browser = await _launch_chromium(p)
         context = await browser.new_context(
             user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15A372 Safari/604.1'
         )
+        context.set_default_timeout(60000)
+        context.set_default_navigation_timeout(60000)
         page = await context.new_page()
 
         try:
-            await page.goto(url, wait_until="domcontentloaded", timeout=60000)
-            await page.wait_for_timeout(8000)
-
-            # 提取标题
-            title = await page.title()
-            # 尝试从 h1 标签获取更准确的标题
-            h1_element = await page.query_selector("h1")
-            if h1_element:
-                h1_text = await h1_element.text_content()
-                if h1_text:
-                    title = h1_text.strip()
-
-            # 提取正文 - 尝试多个可能的选择器
-            content_selectors = [
-                "div[class*='content']",
-                "div[class*='note']",
-                "div[class*='text']",
-                "article",
-                ".note-text",
-                ".desc-text"
-            ]
-            content = ""
-            for selector in content_selectors:
-                content_element = await page.query_selector(selector)
-                if content_element:
-                    text = await content_element.text_content()
-                    if text and len(text) > 20:  # 确保是正文内容
-                        content = text.strip()
-                        break
-
-            # 获取所有图片及其位置信息
-            images = await page.query_selector_all("img")
-            image_data = []
-
-            for img in images:
-                src = await img.get_attribute("src")
-                if src and ("xiaohongshu" in src or "xhscdn" in src):
-                    # 过滤掉头像图片
-                    if "avatar" not in src:
-                        # 获取图片在页面中的位置（用于排序）
-                        box = await img.bounding_box()
-                        if box:
-                            position = (box.get("y", 0), box.get("x", 0))
-                            image_data.append({"url": src, "position": position})
-
-            # 按页面位置排序（先上下后左右）
-            image_data.sort(key=lambda x: x["position"])
-
-            # 去重（保持顺序）- 使用有序去重方法
-            seen = set()
-            unique_urls = []
-            for item in image_data:
-                url = item["url"]
-                # 提取基础URL（去除可能的查询参数）
-                base_url = url.split("?")[0]
-                if base_url not in seen:
-                    seen.add(base_url)
-                    unique_urls.append(url)
+            await navigate_to_note(page, url)
+            title, content, unique_urls = await extract_page_note(page)
 
             await browser.close()
-            return NoteContent(title=title or "小红书笔记", content=content, images=unique_urls)
+            return NoteContent(title=title, content=content, images=unique_urls)
 
         except Exception as e:
             await browser.close()
