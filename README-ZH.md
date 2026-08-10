@@ -12,7 +12,8 @@
 
 ## 功能特点
 
-- 支持 xhslink.com 和 xiaohongshu.com 链接
+- 支持 xhslink.com、xhslink.cn 和 xiaohongshu.com 链接
+- 支持直接粘贴纯链接，也支持粘贴整段小红书分享文案，系统会自动提取链接
 - 支持导出为 PDF 或 Markdown 格式（PDF 包含正文页与图片）
 - 自动提取笔记中的所有图片
 - 按阅读顺序生成文件
@@ -101,10 +102,12 @@ python app.py
 **请求体：**
 ```json
 {
-  "url": "http://xhslink.com/xxx",
+  "url": "http://xhslink.cn/xxx",
   "format": "pdf" // 或 "markdown"
 }
 ```
+
+`url` 可以是纯链接，也可以是包含小红书链接的整段分享文案。
 
 **响应：**
 ```json

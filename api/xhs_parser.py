@@ -49,7 +49,7 @@ MOBILE_UA = (
     "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) "
     "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15A372 Safari/604.1"
 )
-XHSLINK_PATTERN = re.compile(r"xhslink\.com", re.I)
+XHSLINK_PATTERN = re.compile(r"xhslink\.(?:com|cn)", re.I)
 NOTE_ID_PATTERN = re.compile(
     r"xiaohongshu\.com/(?:discovery/item|explore)/([a-f0-9]+)", re.I
 )

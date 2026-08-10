@@ -25,7 +25,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 // 从文本中提取小红书链接
 const extractXhsUrl = (text: string): string => {
   // 匹配 http/https 开头的小红书链接
-  const urlRegex = /(https?:\/\/[^\s]+xiaohongshu\.com[^\s]*)|(https?:\/\/[^\s]+xhslink\.com[^\s]*)/i;
+  const urlRegex = /(https?:\/\/[^\s]+xiaohongshu\.com[^\s]*)|(https?:\/\/[^\s]+xhslink\.(?:com|cn)[^\s]*)/i;
   const match = text.match(urlRegex);
   if (match && match[0]) {
     // 移除可能包含的尾部标点符号
@@ -70,7 +70,7 @@ export default function App() {
 
     // 验证小红书链接
     const xhsPatterns = [
-      /xhslink\.com/,
+      /xhslink\.(?:com|cn)/,
       /xiaohongshu\.com/,
     ];
 

@@ -103,7 +103,7 @@ def extract_url(text: str) -> str:
     import re
 
     # 匹配 http/https 开头的小红书链接
-    url_pattern = r"(https?://(?:[^\s]*?xiaohongshu\.com[^\s]*|xhslink\.com[^\s]*))"
+    url_pattern = r"(https?://(?:[^\s]*?xiaohongshu\.com[^\s]*|xhslink\.(?:com|cn)[^\s]*))"
     match = re.search(url_pattern, text, re.IGNORECASE)
     if match:
         # 移除尾部可能包含的标点符号
@@ -118,7 +118,7 @@ def extract_title_from_text(text: str) -> str:
     import re
 
     # 匹配链接前的所有文字
-    match = re.search(r"(.*?)\s*(https?://(?:[^\s]*?xiaohongshu\.com[^\s]*|xhslink\.com[^\s]*))", text, re.IGNORECASE)
+    match = re.search(r"(.*?)\s*(https?://(?:[^\s]*?xiaohongshu\.com[^\s]*|xhslink\.(?:com|cn)[^\s]*))", text, re.IGNORECASE)
     if match:
         title = match.group(1).strip()
         # 移除常见的复制提示文字

@@ -12,7 +12,8 @@
 
 ## Features
 
-- Supports xhslink.com and xiaohongshu.com links
+- Supports xhslink.com, xhslink.cn, and xiaohongshu.com links
+- You can paste a plain note link or the full Xiaohongshu share text; the app extracts the link automatically
 - Export to PDF or Markdown format (PDF includes a text page plus images)
 - Automatically extracts all images from notes
 - Generates files in reading order
@@ -101,10 +102,12 @@ Convert Xiaohongshu note to PDF or Markdown.
 **Request Body:**
 ```json
 {
-  "url": "http://xhslink.com/xxx",
+  "url": "http://xhslink.cn/xxx",
   "format": "pdf" // or "markdown"
 }
 ```
+
+`url` can be a plain note link or the full share text that contains a Xiaohongshu link.
 
 **Response:**
 ```json
