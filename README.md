@@ -1,3 +1,5 @@
+
+
 # Xiaohongshu to PDF/Markdown Converter
 
 <div align="center">
@@ -64,8 +66,13 @@ After pushing to `main`, Railway will auto-redeploy.
 
 ### Option 2: Separate Frontend and Backend
 
-1. Deploy frontend static files to any static hosting:
-   - Frontend files are in `app/dist/`
+1. Build the frontend:
+   ```bash
+   cd app
+   npm install
+   npm run build
+   ```
+   Frontend static files will be generated in `app/dist/`. Deploy this directory to any static hosting service.
 
 2. Start backend API:
    ```bash
@@ -78,7 +85,7 @@ After pushing to `main`, Railway will auto-redeploy.
 3. Update frontend configuration:
    - Edit `app/.env`
    - Set `VITE_API_URL=http://your-backend-url:8000`
-   - Rebuild the frontend
+   - Run `npm run build` in the `app/` directory to rebuild the frontend
 
 ## Troubleshooting (Railway / Playwright)
 
