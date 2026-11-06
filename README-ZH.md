@@ -64,10 +64,7 @@ python app.py
 
 ### 方式二：前后端分离部署
 
-1. 部署前端静态文件到任意静态服务器：
-   - 前端文件位于 `app/dist/`
-
-2. 启动后端API服务：
+1. 启动后端API服务：
    ```bash
    cd api
    pip install -r requirements.txt
@@ -75,10 +72,18 @@ python app.py
    python main.py
    ```
 
-3. 修改前端配置：
+2. 修改前端配置：
    - 编辑 `app/.env`
    - 设置 `VITE_API_URL=http://your-backend-url:8000`
-   - 重新构建前端
+   - 留空表示使用同域名相对路径（前后端同域部署时）
+
+3. 构建前端：
+   ```bash
+   cd app
+   npm install
+   npm run build
+   ```
+   前端静态文件将生成在 `app/dist/`，将该目录部署到任意静态服务器。
 
 ## 常见问题（Railway / Playwright）
 
