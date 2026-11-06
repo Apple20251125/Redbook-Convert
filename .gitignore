@@ -39,6 +39,13 @@ app/dist/
 .claude/
 CLAUDE.md
 
+# Agent workspace (local notes & memory - never publish)
+.workbuddy/
+
+# Local dev scratch
+dev8001
+markdownTestFile/
+
 # Session summaries
 SESSION_SUMMARY.md
 
