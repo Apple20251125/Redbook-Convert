@@ -11,6 +11,8 @@
 </div>
 
 > **The hosted demo is no longer running.** This project is open source and free to deploy yourself - see [Self-host with Railway](#self-host-with-railway-dockerfile-deployment) or run it locally in a few commands.
+>
+> **Never used a terminal before?** You don't have to install anything yourself - just send the repo link to an AI coding agent and let it set everything up. See [Option 0](#option-0-let-an-ai-agent-install-it-for-you-easiest).
 
 ## Features
 
@@ -40,6 +42,31 @@ xhs-pdf/
 ```
 
 ## Deployment
+
+### Option 0: Let an AI agent install it for you (easiest)
+
+Never used a terminal? You can skip every command below. Just send this repository URL to an AI coding agent that can run commands on your machine — for example **Claude Code**, **OpenAI Codex**, Cursor, or similar — together with the prompt below. The agent will clone the repo, install the dependencies, start the app, and then explain how to use it in plain language.
+
+Copy and paste this to your agent:
+
+```text
+Please set up this project for me: https://github.com/Apple20251125/Redbook-Convert
+
+Clone the repo, read the README, install all required dependencies, and get
+the app running locally. When it is ready:
+
+1. Tell me the exact URL to open in my browser.
+2. Explain in simple, non-technical language how to paste a Xiaohongshu
+   note link (or the whole share text) and export it as a PDF or Markdown
+   file, including where the generated file ends up.
+3. Tell me how to stop and restart the app later.
+
+If anything fails along the way, diagnose and fix it yourself, then tell me
+what you changed. Please do not skip the explanation at the end - I have
+not done this before.
+```
+
+After that, just talk to the agent: "it says connection refused", "how do I put this online?", and so on. No command line needed on your side.
 
 ### Option 1: Integrated Deployment (Recommended)
 
