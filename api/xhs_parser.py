@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 from typing import Any, List, Tuple
 
@@ -53,6 +54,29 @@ XHSLINK_PATTERN = re.compile(r"xhslink\.(?:com|cn)", re.I)
 NOTE_ID_PATTERN = re.compile(
     r"xiaohongshu\.com/(?:discovery/item|explore)/([a-f0-9]+)", re.I
 )
+
+
+def http_client_options() -> dict[str, Any]:
+    """httpx 客户端连接参数（首选方式）。
+
+    小红书必须直连：环境里的 http_proxy/https_proxy 指向的是沙箱/会话级代理，
+    端口每轮会话都会变，进程继承的旧端口一旦失效，httpx 会整体报
+    "All connection attempts failed"，HTTP 解析随之失效。
+
+    需要走代理时用 XHS_HTTP_PROXY 显式指定（例如公司网络环境）。
+    """
+    proxy = os.getenv("XHS_HTTP_PROXY", "").strip()
+    if proxy:
+        return {"proxy": proxy}
+    return {"trust_env": False}
+
+
+def http_client_option_chain() -> List[dict[str, Any]]:
+    """依次尝试的连接参数链：显式代理不可用时自动降级为直连。"""
+    proxy = os.getenv("XHS_HTTP_PROXY", "").strip()
+    if proxy:
+        return [{"proxy": proxy}, {"trust_env": False}]
+    return [{"trust_env": False}]
 INITIAL_STATE_PATTERN = re.compile(
     r"window\.__INITIAL_STATE__\s*=\s*(\{.+?\})\s*</script>", re.S
 )
@@ -156,25 +180,27 @@ async def _resolve_fetch_url(url: str) -> str:
 async def fetch_note_via_http(url: str) -> Tuple[str, str, List[str]] | None:
     """Fetch note via page HTML — avoids headless browser login redirects."""
     fetch_url = await _resolve_fetch_url(url)
-    try:
-        async with httpx.AsyncClient(
-            follow_redirects=True,
-            timeout=30.0,
-            headers={"User-Agent": MOBILE_UA},
-        ) as client:
-            response = await client.get(fetch_url)
-            response.raise_for_status()
-            parsed = _parse_initial_state(response.text)
-            if parsed:
-                title, content, images = parsed
-                logger.info(
-                    "HTTP parse ok: title=%s, images=%s",
-                    title[:40],
-                    len(images),
-                )
-                return parsed
-    except Exception as exc:
-        logger.warning("HTTP note parse failed: %s", exc)
+    for opts in http_client_option_chain():
+        try:
+            async with httpx.AsyncClient(
+                follow_redirects=True,
+                timeout=30.0,
+                headers={"User-Agent": MOBILE_UA},
+                **opts,
+            ) as client:
+                response = await client.get(fetch_url)
+                response.raise_for_status()
+                parsed = _parse_initial_state(response.text)
+                if parsed:
+                    title, content, images = parsed
+                    logger.info(
+                        "HTTP parse ok: title=%s, images=%s",
+                        title[:40],
+                        len(images),
+                    )
+                    return parsed
+        except Exception as exc:
+            logger.warning("HTTP note parse failed (%s): %s", opts, exc)
     return None
 
 
@@ -220,19 +246,23 @@ async def resolve_note_url_http(url: str) -> str | None:
         return None
 
     normalized = normalize_url(url)
-    try:
-        async with httpx.AsyncClient(
-            follow_redirects=True,
-            timeout=20.0,
-            headers={"User-Agent": MOBILE_UA},
-        ) as client:
-            response = await client.get(normalized)
-            final_url = str(response.url)
-            if XHS_HOST_PATTERN.search(final_url):
-                logger.info("xhslink resolved (http): %s -> %s", normalized, final_url[:120])
-                return final_url
-    except Exception as exc:
-        logger.warning("xhslink HTTP resolve failed: %s", exc)
+    for opts in http_client_option_chain():
+        try:
+            async with httpx.AsyncClient(
+                follow_redirects=True,
+                timeout=20.0,
+                headers={"User-Agent": MOBILE_UA},
+                **opts,
+            ) as client:
+                response = await client.get(normalized)
+                final_url = str(response.url)
+                if XHS_HOST_PATTERN.search(final_url):
+                    logger.info(
+                        "xhslink resolved (http): %s -> %s", normalized, final_url[:120]
+                    )
+                    return final_url
+        except Exception as exc:
+            logger.warning("xhslink HTTP resolve failed (%s): %s", opts, exc)
     return None
 
 
@@ -252,12 +282,13 @@ def build_goto_candidates(url: str, resolved: str | None) -> List[str]:
         add(normalized)
 
     if resolved:
-        add(canonical_note_url(resolved))
+        # 带 xsec_token 的完整 URL 必须优先：剥掉 query 的裸 URL 会被小红书判 404
         add(resolved)
+        add(canonical_note_url(resolved))
 
     if XHS_HOST_PATTERN.search(normalized):
-        add(canonical_note_url(normalized))
         add(normalized)
+        add(canonical_note_url(normalized))
 
     return candidates
 

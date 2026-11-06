@@ -9,10 +9,11 @@ import html
 import io
 import httpx
 import os
+import socket
 import uuid
 import zipfile
 import logging
-from typing import List, Literal
+from typing import Any, List, Literal
 import platform
 
 from stats_store import (
@@ -181,9 +182,64 @@ def _build_launch_args() -> List[str]:
     return common_args
 
 
+def _build_launch_proxy() -> dict[str, Any]:
+    """Playwright 浏览器代理配置。
+
+    不设 XHS_BROWSER_PROXY 时沿用系统代理设置；Chromium 直连小红书会被 reset
+    (ERR_EMPTY_RESPONSE)，所以代理不可用时浏览器兜底路径也会失效。
+    """
+    proxy = os.getenv("XHS_BROWSER_PROXY", "").strip()
+    return {"proxy": {"server": proxy}} if proxy else {}
+
+
+def _proxy_endpoint() -> tuple[str, str] | None:
+    """读取环境代理地址（沙箱代理端口每轮会话都会变）。"""
+    for key in (
+        "http_proxy",
+        "https_proxy",
+        "HTTP_PROXY",
+        "HTTPS_PROXY",
+        "all_proxy",
+        "ALL_PROXY",
+    ):
+        value = (os.getenv(key) or "").strip()
+        if not value:
+            continue
+        endpoint = value.split("://")[-1].strip("/")
+        if "@" in endpoint:
+            endpoint = endpoint.split("@")[-1]
+        host, _, port = endpoint.partition(":")
+        if host and port:
+            return value, f"{host}:{port}"
+    return None
+
+
+def _check_env_proxy() -> None:
+    """启动时体检环境代理是否还活着。
+
+    失效只告警不阻断：小红书解析已在 xhs_parser 层强制直连(trust_env=False)。
+    """
+    found = _proxy_endpoint()
+    if not found:
+        return
+    raw, address = found
+    host, _, port = address.partition(":")
+    try:
+        with socket.create_connection((host, int(port)), timeout=2):
+            logger.info("环境代理 %s 可用 (%s)", raw, address)
+    except Exception as exc:
+        logger.warning(
+            "环境代理 %s 已失效 (%s: %s) —— 小红书解析已强制直连，不受影响；"
+            "若 Playwright 兜底也失败，请用 XHS_BROWSER_PROXY 指定可用代理",
+            raw,
+            address,
+            type(exc).__name__,
+        )
+
+
 async def _launch_chromium(playwright_instance):
     """Launch browser: preferred channel first, then fallback."""
-    common = {"headless": True, "args": _build_launch_args()}
+    common = {"headless": True, "args": _build_launch_args(), **_build_launch_proxy()}
     is_macos = platform.system() == "Darwin"
 
     try:
@@ -543,7 +599,8 @@ async def convert_note(request: ConvertRequest, x_visitor_id: str | None = Heade
 
         if request.format == "markdown" and not note_content.content:
             raise HTTPException(
-                status_code=400, detail="未找到笔记正文，请检查链接是否正确"
+                status_code=400,
+                detail="该笔记没有正文内容（纯图片笔记），无法生成 Markdown，请改用 PDF",
             )
 
         task_dir = os.path.join(OUTPUT_DIR, task_id)
@@ -735,6 +792,10 @@ if frontend_dir:
     logger.info(f"前端静态文件目录: {frontend_dir}")
 else:
     logger.warning("前端静态文件目录不存在")
+
+
+# 启动体检：放在模块末尾，确保 _check_env_proxy 已定义
+_check_env_proxy()
 
 
 if __name__ == "__main__":
