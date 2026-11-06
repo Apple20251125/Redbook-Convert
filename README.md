@@ -6,9 +6,11 @@
 
 ### A lightweight web tool that converts Xiaohongshu notes into PDF and Markdown formats
 
-[Demo](https://redbook-convert-production.up.railway.app) • [中文](README-ZH.md) • [Features](#features) • [Quick Start](#deployment) • [API](#api-endpoints)
+[中文](README-ZH.md) • [Features](#features) • [Quick Start](#deployment) • [API](#api-endpoints)
 
 </div>
+
+> **The hosted demo is no longer running.** This project is open source and free to deploy yourself - see [Self-host with Railway](#self-host-with-railway-dockerfile-deployment) or run it locally in a few commands.
 
 ## Features
 
@@ -52,15 +54,21 @@ python app.py
 
 Visit http://localhost:8000 to use.
 
-### Railway (Dockerfile deployment)
+### Self-host with Railway (Dockerfile deployment)
 
-This repo is configured for Railway via `Dockerfile` + `railway.json`.
+The hosted demo has been shut down, but this repo is still ready to run on Railway via `Dockerfile` + `railway.json`. Bring up your own instance:
+
+1. Fork or clone this repo
+2. Create a Railway project and connect it to your fork (or run `railway init` locally and link the repo)
+3. Railway picks up the `Dockerfile` and builds the image - no build command to configure
+4. Open the domain Railway assigns to the deployment
+
+Notes:
 
 - Runtime entrypoint is `api/app.py` (integrated frontend + backend), not `api/main.py`
 - Build includes `playwright install chromium`
 - Linux container launch flags are tuned in both `api/app.py` and `api/main.py` for Railway stability
-
-After pushing to `main`, Railway will auto-redeploy.
+- Pushing to `main` redeploys your own Railway project automatically
 
 ### Option 2: Separate Frontend and Backend
 
@@ -85,7 +93,7 @@ After pushing to `main`, Railway will auto-redeploy.
    ```
    Frontend static files will be generated in `app/dist/`. Deploy this directory to any static hosting service.
 
-## Troubleshooting (Railway / Playwright)
+## Troubleshooting (Docker / Playwright)
 
 If logs show `chrome_crashpad_handler: Resource temporarily unavailable (11)`:
 
@@ -189,7 +197,7 @@ You can override the path with:
 STATS_DB_PATH=/data/stats.db
 ```
 
-Recommended Railway setup:
+Recommended setup when self-hosting:
 
 - Add a persistent volume and mount it to `/data`
 - Set `STATS_DB_PATH=/data/stats.db`

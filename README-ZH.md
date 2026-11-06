@@ -6,9 +6,11 @@
 
 ### 轻量级工具，一键将小红书笔记转换为PDF和Markdown格式
 
-[在线演示](https://redbook-convert-production.up.railway.app) • [English](README.md) • [功能特点](#功能特点) • [快速开始](#部署方式) • [API接口](#api接口)
+[English](README.md) • [功能特点](#功能特点) • [快速开始](#部署方式) • [API接口](#api接口)
 
 </div>
+
+> **官方在线演示已停止运行。** 本项目完全开源，可自行部署到 Railway（见下方「自建部署到 Railway」一节），也可在本地用几条命令跑起来。
 
 ## 功能特点
 
@@ -52,15 +54,21 @@ python app.py
 
 访问 http://localhost:8000 即可使用。
 
-### Railway（Dockerfile 部署）
+### 自建部署到 Railway（Dockerfile 部署）
 
-本仓库已通过 `Dockerfile` + `railway.json` 适配 Railway。
+官方在线演示已下线，但本仓库仍可通过 `Dockerfile` + `railway.json` 部署到 Railway，自行搭建实例：
+
+1. Fork 或 clone 本仓库
+2. 在 Railway 新建项目并关联你的 Fork（或本地执行 `railway init` 后关联仓库）
+3. Railway 会自动识别 `Dockerfile` 并构建镜像，无需额外配置构建命令
+4. 构建完成后打开 Railway 分配的域名即可访问
+
+说明：
 
 - 线上运行入口是 `api/app.py`（前后端整合），不是 `api/main.py`
 - 构建阶段已包含 `playwright install chromium`
 - `api/app.py` 与 `api/main.py` 都已包含 Linux 容器稳定启动参数（适配 Railway）
-
-代码推送到 `main` 后，Railway 会自动重新部署。
+- 代码推送到 `main` 后，你自己搭建的 Railway 项目会自动重新部署
 
 ### 方式二：前后端分离部署
 
@@ -85,7 +93,7 @@ python app.py
    ```
    前端静态文件将生成在 `app/dist/`，将该目录部署到任意静态服务器。
 
-## 常见问题（Railway / Playwright）
+## 常见问题（Docker / Playwright）
 
 如果日志出现 `chrome_crashpad_handler: Resource temporarily unavailable (11)`：
 
@@ -189,7 +197,7 @@ api/data/stats.db
 STATS_DB_PATH=/data/stats.db
 ```
 
-推荐的 Railway 配置：
+自建部署时的推荐配置：
 
 - 添加一个持久化 Volume，并挂载到 `/data`
 - 设置 `STATS_DB_PATH=/data/stats.db`
